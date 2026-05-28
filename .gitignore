@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+generated/
+*.pkl
+master_dataset.csv
+results/
+base_files/
+.claude/

@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HX Sentinel — Paul &amp; Loughran Ltd</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500&family=Barlow+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e14;--panel:#0f1520;--border:#1e2d42;
+  --accent:#00c8ff;--green:#00ff9d;--warn:#ffb800;--danger:#ff3d3d;
+  --text:#e8f4ff;--label:#8ab4d4;
+  --mono:'Share Tech Mono',monospace;--ui:'Barlow',sans-serif;--disp:'Barlow Condensed',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100vh;padding:1.25rem;position:relative;overflow-x:hidden}
+.scan{position:fixed;top:0;left:0;right:0;height:1px;background:rgba(0,200,255,0.1);animation:sc 6s linear infinite;pointer-events:none;z-index:999}
+@keyframes sc{0%{top:0}100%{top:100vh}}
+
+/* ── Header ─────────────────────────────────────────────────────────────────── */
+.hdr{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:.75rem;margin-bottom:.875rem}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.ring-logo{width:32px;height:32px;border-radius:50%;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;animation:pr 3s ease-in-out infinite;flex-shrink:0}
+@keyframes pr{0%,100%{box-shadow:0 0 0 0 rgba(0,200,255,0.35)}50%{box-shadow:0 0 0 7px rgba(0,200,255,0)}}
+.ring-dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.sys-title{font-family:var(--disp);font-size:18px;font-weight:500;letter-spacing:2px;color:var(--accent);text-transform:uppercase}
+.sys-sub{font-size:10px;color:var(--label);letter-spacing:.8px;font-family:var(--mono)}
+.badge{font-family:var(--mono);font-size:10px;color:var(--green);border:1px solid var(--green);padding:3px 8px;border-radius:2px;letter-spacing:1px;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.bdot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:bl 1.5s ease-in-out infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:0.15}}
+
+/* ── Panels ─────────────────────────────────────────────────────────────────── */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:.875rem;position:relative;overflow:hidden}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.p-blue::before{background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.p-green::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.p-warn::before{background:linear-gradient(90deg,transparent,var(--warn),transparent)}
+.plabel{font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:.75rem}
+.psub{font-family:var(--mono);font-size:9px;color:var(--label);letter-spacing:1.5px;text-transform:uppercase;margin:8px 0 5px;padding-bottom:3px;border-bottom:1px solid #0f1e2e}
+
+/* ── Design Basis ───────────────────────────────────────────────────────────── */
+.db-hdr{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.db-hdr .plabel{margin:0;border:none;padding:0}
+.db-arrow{font-size:10px;color:var(--accent);font-family:var(--mono);transition:transform .25s}
+.db-arrow.closed{transform:rotate(-90deg)}
+.db-body{margin-top:.75rem}
+.db-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+
+/* ── Form fields ────────────────────────────────────────────────────────────── */
+.f{display:flex;flex-direction:column;gap:2px;min-width:0}
+.f label{font-size:10px;color:var(--label);font-family:var(--mono);white-space:nowrap}
+.f input,.f select{background:#060c14;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:2px;outline:none;transition:border-color .2s;width:100%}
+.f input:focus,.f select:focus{border-color:var(--accent)}
+.f select option{background:#060c14}
+.f .un{font-size:9px;color:var(--label)}
+.calc-val{background:#060c14;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:12px;padding:5px 7px;border-radius:2px;width:100%;min-height:26px;display:flex;align-items:center;justify-content:flex-end}
+
+/* ── Main layout ────────────────────────────────────────────────────────────── */
+.grid3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr);gap:.875rem;margin-top:.875rem}
+.irow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+
+/* ── Run button ─────────────────────────────────────────────────────────────── */
+.btn{width:100%;margin-top:10px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--disp);font-size:13px;font-weight:500;letter-spacing:3px;text-transform:uppercase;padding:10px;cursor:pointer;transition:all .2s;border-radius:2px}
+.btn:hover{background:rgba(0,200,255,0.08)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.step-info{font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:5px;height:13px;letter-spacing:.5px}
+.err{background:rgba(255,61,61,0.08);border:1px solid var(--danger);color:var(--danger);font-family:var(--mono);font-size:10px;padding:8px 10px;border-radius:2px;margin-top:8px;display:none}
+
+/* ── Health / Middle panel ──────────────────────────────────────────────────── */
+.health-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
+.rscore{font-family:'Share Tech Mono',monospace;font-size:32px;fill:#e8f4ff;text-anchor:middle;dominant-baseline:central}
+.rsub{font-size:9px;fill:#8ab4d4;text-anchor:middle;font-family:monospace}
+.hclass{font-family:var(--disp);font-size:18px;font-weight:600;letter-spacing:3px;text-transform:uppercase;text-align:center;transition:color .5s}
+.aratio{font-size:11px;color:var(--label);text-align:center;font-family:var(--mono)}
+.aratio span{color:var(--text);font-size:12px}
+.abox{margin-top:8px;padding:8px 10px;border-radius:2px;font-size:10px;font-family:var(--mono);letter-spacing:.4px;text-align:center;transition:all .5s;border:1px solid;width:100%;line-height:1.5}
+.fbars{width:100%;margin-top:10px}
+.frow{margin-bottom:7px}
+.flabel{display:flex;justify-content:space-between;font-size:10px;color:var(--label);font-family:var(--mono);margin-bottom:4px}
+.flabel span:last-child{color:var(--text)}
+.btrack{height:4px;background:#060c14;border-radius:2px;overflow:hidden;border:1px solid var(--border)}
+.bfill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1),background .5s}
+.prob-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.prob-label{font-size:9px;color:var(--label);font-family:var(--mono);width:52px;text-transform:uppercase}
+.prob-bar{flex:1;height:3px;background:#1e2d42;border-radius:2px;overflow:hidden}
+.prob-fill{height:100%;border-radius:2px;transition:width .8s}
+.prob-val{font-size:9px;font-family:var(--mono);color:var(--text);width:32px;text-align:right}
+
+/* ── TEMA / Right panel ─────────────────────────────────────────────────────── */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#060c14;border-radius:2px;border:1px solid var(--border);transition:border-color .3s;margin-bottom:5px}
+.tname{font-size:10px;font-family:var(--mono);color:var(--text)}
+.tright{display:flex;align-items:center;gap:6px}
+.tval{font-family:var(--mono);font-size:10px;color:var(--text)}
+.tlim{font-size:9px;color:var(--label);white-space:nowrap}
+.tdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.mc{background:#060c14;border:1px solid var(--border);border-radius:2px;padding:7px 8px}
+.mname{font-size:9px;color:var(--label);font-family:var(--mono);letter-spacing:.8px;margin-bottom:3px;text-transform:uppercase}
+.mval{font-family:var(--mono);font-size:14px;transition:color .5s}
+.msub{font-size:9px;color:var(--label);margin-top:1px}
+.tcwrap{position:relative;width:100%;height:130px}
+
+/* ── Thermal Performance cards ──────────────────────────────────────────────── */
+.therm-panel{margin-top:.875rem}
+.therm-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:.875rem}
+.tc-cell{background:#060c14;border:1px solid var(--border);border-radius:2px;padding:10px 12px;transition:border-color .4s}
+.tc-name{font-size:9px;color:var(--label);font-family:var(--mono);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
+.tc-val{font-family:var(--mono);font-size:18px;font-weight:600;transition:color .5s;margin-bottom:3px}
+.tc-method{font-size:9px;color:var(--label);font-family:var(--mono);margin-bottom:4px;font-style:italic}
+.tc-row{font-size:9px;color:var(--label);font-family:var(--mono);margin-bottom:2px}
+.tc-row span{color:var(--text)}
+.cap-track{height:5px;background:#1e2d42;border-radius:3px;overflow:hidden;border:1px solid var(--border);margin-top:6px}
+.cap-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1),background .5s}
+
+/* ── Diagnostic Insight ─────────────────────────────────────────────────────── */
+.diag-outer{margin-top:.875rem}
+.diag-inner{display:flex;flex-direction:column;gap:6px}
+.diag-idle{font-family:var(--mono);font-size:10px;color:var(--label);text-align:center;padding:12px 0;letter-spacing:.5px}
+.diag-msg{font-family:var(--mono);font-size:10px;padding:8px 12px;border-radius:2px;border-left:3px solid;line-height:1.6;letter-spacing:.3px}
+.diag-ok{font-family:var(--mono);font-size:10px;padding:8px 12px;border-radius:2px;border-left:3px solid var(--green);color:var(--green);background:rgba(0,255,157,0.05);line-height:1.6}
+.diag-warning{color:var(--warn);background:rgba(255,184,0,0.06);border-color:var(--warn)}
+.diag-danger{color:var(--danger);background:rgba(255,61,61,0.06);border-color:var(--danger)}
+
+/* ── Computed output strip ──────────────────────────────────────────────────── */
+.out-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;margin-bottom:6px}
+.out-cell{background:#060c14;border:1px solid var(--accent);border-radius:2px;padding:5px 8px}
+.out-label{font-size:9px;color:var(--label);font-family:var(--mono);margin-bottom:2px}
+.out-val{font-family:var(--mono);font-size:11px;color:var(--accent);text-align:right}
+
+/* ── Job selector ───────────────────────────────────────────────────────────── */
+.job-sel-wrap{display:flex;align-items:center;gap:7px}
+.job-sel-lbl{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:1.5px;white-space:nowrap}
+.job-sel-sel{background:#060c14;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:2px;outline:none;cursor:pointer;letter-spacing:.5px;min-width:210px}
+.job-sel-sel:focus{border-color:#00ff9d}
+.job-sel-sel option{background:#0a0e14;color:var(--text)}
+
+.foot{font-family:var(--mono);font-size:9px;color:var(--label);text-align:center;margin-top:.75rem;letter-spacing:.8px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="scan"></div>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="ring-logo"><div class="ring-dot"></div></div>
+    <div>
+      <div class="sys-title">HX Sentinel</div>
+      <div class="sys-sub">Predictive Maintenance · Paul &amp; Loughran Ltd</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="job-sel-wrap">
+      <span class="job-sel-lbl">JOB</span>
+      <select id="job-selector" class="job-sel-sel" onchange="selectJob(this.value)">
+        <option value="">— select job —</option>
+      </select>
+    </div>
+    <div class="badge" id="api-badge"><div class="bdot"></div><span id="api-status">CHECKING...</span></div>
+  </div>
+</div>
+
+<!-- ── Design Basis (collapsible) ─────────────────────────────────────────── -->
+<div class="panel p-blue" id="db-wrap">
+  <div class="db-hdr" onclick="toggleDB()">
+    <div class="plabel" style="margin:0;border:none;padding:0">Design Basis — load from job or enter once</div>
+    <span class="db-arrow" id="db-arrow">▼</span>
+  </div>
+  <div id="db-body" class="db-body">
+    <div class="db-grid">
+      <div class="f"><label>Job number</label><input type="text" id="db_job" value="8497" oninput="saveDB()"><div class="un">reference</div></div>
+      <div class="f"><label>Shell inlet design (°C)</label><input type="number" id="db_shell_in" value="55" step="0.1" oninput="saveDB()"><div class="un">hot side in</div></div>
+      <div class="f"><label>Tube inlet design (°C)</label><input type="number" id="db_tube_in" value="5" step="0.1" oninput="saveDB()"><div class="un">cold side in</div></div>
+      <div class="f"><label>Shell flow design (kg/h)</label><input type="number" id="db_shell_flow" value="198" step="1" oninput="saveDB()"><div class="un">design mass flow</div></div>
+
+      <div class="f"><label>Tube flow design (SCMH)</label><input type="number" id="db_tube_flow_scmh" value="1249" step="1" oninput="saveDB()"><div class="un">design gas flow</div></div>
+      <div class="f"><label>Std gas density (kg/m³)</label><input type="number" id="db_std_density" value="0.72838" step="0.00001" oninput="saveDB()"><div class="un">standard conditions</div></div>
+      <div class="f"><label>Duty design (kW)</label><input type="number" id="db_duty_design" value="4.5" step="0.1" oninput="saveDB()"><div class="un">design heat duty</div></div>
+      <div class="f"><label>U clean (W/m²K)</label><input type="number" id="db_u_clean" value="291.9" step="1" oninput="saveDB()"><div class="un">clean baseline</div></div>
+      <div class="f"><label>Area (m²)</label><input type="number" id="db_area" value="0.570" step="0.001" oninput="saveDB()"><div class="un">heat transfer area</div></div>
+
+      <div class="f"><label>F correction</label><input type="number" id="db_f_factor" value="0.985" step="0.001" oninput="saveDB()"><div class="un">MTD correction</div></div>
+      <div class="f"><label>Glycol conc.</label>
+        <select id="db_glycol_pct" onchange="saveDB()">
+          <option value="25">25% MEG</option>
+          <option value="40" selected>40% MEG</option>
+          <option value="60">60% MEG</option>
+          <option value="75">75% MEG</option>
+        </select>
+        <div class="un">shell-side fluid</div>
+      </div>
+      <div class="f"><label>Tube pressure in (barg)</label><input type="number" id="db_tube_pres_in" value="76" step="0.1" oninput="saveDB()"><div class="un">tube inlet</div></div>
+      <div class="f"><label>Tube pressure out (barg)</label><input type="number" id="db_tube_pres_out" value="75.5" step="0.1" oninput="saveDB()"><div class="un">tube outlet</div></div>
+
+      <div class="f"><label>Shell ΔP allowable (bar)</label><input type="number" id="db_dp_allow_ss" value="0.2" step="0.01" oninput="saveDB()"><div class="un">limit</div></div>
+      <div class="f"><label>Tube ΔP allowable (bar)</label><input type="number" id="db_dp_allow_ts" value="0.5" step="0.01" oninput="saveDB()"><div class="un">limit</div></div>
+      <div class="f"><label>Shell out design (°C)</label><input type="number" id="db_shell_out_design" value="35" step="0.1" oninput="saveDB()"><div class="un">target outlet</div></div>
+      <div class="f"><label>Tube out design (°C)</label><input type="number" id="db_tube_out_design" value="12.7" step="0.1" oninput="saveDB()"><div class="un">target outlet</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main 3-column grid ──────────────────────────────────────────────────── -->
+<div class="grid3">
+
+  <!-- ── LEFT: Site Readings ──────────────────────────────────────────────── -->
+  <div class="panel p-blue">
+    <div class="plabel">Site Readings</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--label);margin-bottom:6px;letter-spacing:.5px">Enter actual measured values — dashboard calculates everything else</div>
+
+    <div class="psub">Temperatures (°C)</div>
+    <div class="irow">
+      <div class="f"><label>Shell inlet actual</label><input type="number" id="sr_shell_in" value="55" step="0.1"><div class="un">hot side in</div></div>
+      <div class="f"><label>Shell outlet actual</label><input type="number" id="sr_shell_out" value="35.0" step="0.1"><div class="un">hot side out</div></div>
+    </div>
+    <div class="irow">
+      <div class="f"><label>Tube inlet actual</label><input type="number" id="sr_tube_in" value="5" step="0.1"><div class="un">cold side in</div></div>
+      <div class="f"><label>Tube outlet actual</label><input type="number" id="sr_tube_out" value="12.74" step="0.01"><div class="un">cold side out</div></div>
+    </div>
+
+    <div class="psub">Flow</div>
+    <div class="irow">
+      <div class="f"><label>Shell flow actual (kg/h)</label><input type="number" id="sr_shell_flow" value="198" step="1"><div class="un">glycol mass flow</div></div>
+      <div class="f"><label>Tube gas flow actual (SCMH)</label><input type="number" id="sr_tube_flow" value="1249" step="1"><div class="un">standard m³/h</div></div>
+    </div>
+
+    <div class="psub">Pressure (barg)</div>
+    <div class="irow">
+      <div class="f"><label>Shell pressure actual</label><input type="number" id="sr_shell_pres" value="4" step="0.1"><div class="un">shell operating</div></div>
+      <div class="f"><label>Tube pressure in actual</label><input type="number" id="sr_tube_pres_in" value="76" step="0.1"><div class="un">tube inlet</div></div>
+    </div>
+    <div class="irow">
+      <div class="f"><label>Tube pressure out actual</label><input type="number" id="sr_tube_pres_out" value="75.5" step="0.1"><div class="un">tube outlet</div></div>
+      <div class="f"></div>
+    </div>
+
+    <div class="psub">Hydraulics</div>
+    <div class="irow">
+      <div class="f"><label>Shell &#916;P actual (bar)</label><input type="number" id="sr_dp_ss" value="0.00061" step="0.00001"><div class="un">measured</div></div>
+      <div class="f"><label>Tube &#916;P actual (bar)</label><input type="number" id="sr_dp_ts" value="0.0368" step="0.0001"><div class="un">measured</div></div>
+    </div>
+    <div class="irow">
+      <div class="f"><label>Tube velocity actual (m/s)</label><input type="number" id="sr_tube_vel" value="11.2" step="0.1"><div class="un">measured</div></div>
+      <div class="f"><label>Rho&#xB7;V&#xB2; nozzle actual</label><input type="number" id="sr_rv2" value="1291" step="10"><div class="un">kg/m&#xB7;s&#xB2;</div></div>
+    </div>
+
+    <div class="psub">Calculated outputs</div>
+    <div class="out-strip">
+      <div class="out-cell"><div class="out-label">U actual (W/m&#xB2;K)</div><div class="out-val" id="out_u_actual">--</div></div>
+      <div class="out-cell"><div class="out-label">LMTD (°C)</div><div class="out-val" id="out_lmtd">--</div></div>
+      <div class="out-cell"><div class="out-label">Q (kW)</div><div class="out-val" id="out_q_best">--</div></div>
+    </div>
+
+    <div class="step-info" id="step-info">&nbsp;</div>
+    <button class="btn" id="run-btn" onclick="runAnalysis()">&#9654;  Run Analysis</button>
+    <div class="err" id="err-box"></div>
+  </div>
+
+  <!-- ── MIDDLE: Health Score ──────────────────────────────────────────────── -->
+  <div class="panel p-green" style="display:flex;flex-direction:column;align-items:center">
+    <div class="plabel" style="width:100%;text-align:center">Health Score</div>
+    <div class="health-wrap">
+      <svg width="130" height="130" viewBox="0 0 130 130">
+        <circle cx="65" cy="65" r="52" fill="none" stroke="#0f1520" stroke-width="9"/>
+        <circle cx="65" cy="65" r="52" fill="none" stroke="#1e2d42" stroke-width="9" stroke-dasharray="326.73" transform="rotate(-90 65 65)"/>
+        <circle id="rf" cx="65" cy="65" r="52" fill="none" stroke="#00ff9d" stroke-width="9" stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round" transform="rotate(-90 65 65)" style="transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1),stroke .5s"/>
+        <text id="rs" class="rscore" x="65" y="61">--</text>
+        <text class="rsub" x="65" y="76">HEALTH INDEX</text>
+      </svg>
+      <div id="hc" class="hclass" style="color:#8ab4d4">AWAITING INPUT</div>
+      <div class="aratio">Area Ratio: <span id="ar">--</span></div>
+      <div id="ab" class="abox" style="border-color:#1e2d42;color:#8ab4d4;background:transparent">
+        Enter readings and click Run Analysis
+      </div>
+    </div>
+
+    <div style="width:100%;margin-top:14px">
+      <div class="plabel">Class Probabilities</div>
+      <div class="prob-row"><span class="prob-label">Healthy</span><div class="prob-bar"><div class="prob-fill" id="pb-h" style="width:0%;background:#00ff9d"></div></div><span class="prob-val" id="pv-h">--</span></div>
+      <div class="prob-row"><span class="prob-label">Warning</span><div class="prob-bar"><div class="prob-fill" id="pb-w" style="width:0%;background:#ffb800"></div></div><span class="prob-val" id="pv-w">--</span></div>
+      <div class="prob-row"><span class="prob-label">Critical</span><div class="prob-bar"><div class="prob-fill" id="pb-c" style="width:0%;background:#ff6600"></div></div><span class="prob-val" id="pv-c">--</span></div>
+      <div class="prob-row"><span class="prob-label">Failed</span><div class="prob-bar"><div class="prob-fill" id="pb-f" style="width:0%;background:#ff3d3d"></div></div><span class="prob-val" id="pv-f">--</span></div>
+    </div>
+
+    <div class="fbars" style="margin-top:10px">
+      <div class="frow">
+        <div class="flabel"><span>Shell ΔP vs allow.</span><span id="sfp">--%</span></div>
+        <div class="btrack"><div id="sfb" class="bfill" style="width:0%;background:#00c8ff"></div></div>
+      </div>
+      <div class="frow">
+        <div class="flabel"><span>Tube ΔP vs allow.</span><span id="tfp">--%</span></div>
+        <div class="btrack"><div id="tfb" class="bfill" style="width:0%;background:#00c8ff"></div></div>
+      </div>
+      <div class="frow">
+        <div class="flabel"><span>U degradation</span><span id="udp">--%</span></div>
+        <div class="btrack"><div id="udb" class="bfill" style="width:0%;background:#00ff9d"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: TEMA + Performance + Chart ─────────────────────────────────── -->
+  <div class="panel p-warn">
+    <div class="plabel">TEMA Limits</div>
+    <div class="trow" id="tr-tv">
+      <div class="tname">Tube velocity</div>
+      <div class="tright"><span class="tval" id="tv-v">-- m/s</span><span class="tlim">max 40 m/s</span><div class="tdot" id="tv-d" style="background:#3a5570"></div></div>
+    </div>
+    <div class="trow" id="tr-rv">
+      <div class="tname">Nozzle Rho·V²</div>
+      <div class="tright"><span class="tval" id="rv-v">--</span><span class="tlim">max 2232</span><div class="tdot" id="rv-d" style="background:#3a5570"></div></div>
+    </div>
+    <div class="trow" id="tr-ds">
+      <div class="tname">Shell ΔP ratio</div>
+      <div class="tright"><span class="tval" id="ds-v">--%</span><span class="tlim">max 100%</span><div class="tdot" id="ds-d" style="background:#3a5570"></div></div>
+    </div>
+    <div class="trow" id="tr-dt">
+      <div class="tname">Tube ΔP ratio</div>
+      <div class="tright"><span class="tval" id="dt-v">--%</span><span class="tlim">max 100%</span><div class="tdot" id="dt-d" style="background:#3a5570"></div></div>
+    </div>
+
+    <div class="plabel" style="margin-top:10px">Performance</div>
+    <div class="mgrid">
+      <div class="mc"><div class="mname">U ratio</div><div class="mval" id="m-ur" style="color:#8ab4d4">--</div><div class="msub">dirty / clean</div></div>
+      <div class="mc"><div class="mname">Fouling index</div><div class="mval" id="m-fi" style="color:#8ab4d4">--</div><div class="msub">0=clean · 1=failed</div></div>
+      <div class="mc"><div class="mname">Shell ΔP (bar)</div><div class="mval" id="m-ds" style="color:#8ab4d4">--</div><div class="msub">measured</div></div>
+      <div class="mc"><div class="mname">Tube vel. (m/s)</div><div class="mval" id="m-tv" style="color:#8ab4d4">--</div><div class="msub">measured</div></div>
+    </div>
+
+    <div class="plabel">U Ratio Trend</div>
+    <div class="tcwrap">
+      <canvas id="tc"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ── Thermal Performance (full-width, 6 cards) ──────────────────────────── -->
+<div class="panel p-blue therm-panel">
+  <div class="plabel">Thermal Performance</div>
+  <div class="therm-grid">
+
+    <!-- Card 1: Exchanger Duty (single, tube enthalpy) -->
+    <div class="tc-cell" id="card-qshell">
+      <div class="tc-name">Exchanger Duty</div>
+      <div class="tc-val" id="tc-qshell" style="color:#8ab4d4">--</div>
+      <div class="tc-method">ṁ × Δh (enthalpy)</div>
+      <div class="tc-row" id="tc-qshell-loss">&nbsp;</div>
+    </div>
+
+    <!-- Card 2: U actual / U ratio -->
+    <div class="tc-cell" id="card-qtube">
+      <div class="tc-name">U Actual</div>
+      <div class="tc-val" id="tc-qtube" style="color:#8ab4d4">--</div>
+      <div class="tc-method">Q / (A × LMTD × F)</div>
+      <div class="tc-row" id="tc-qtube-loss">&nbsp;</div>
+    </div>
+
+    <!-- Card 3: Duty loss + capacity bar -->
+    <div class="tc-cell">
+      <div class="tc-name">Duty Loss</div>
+      <div class="tc-val" id="tc-qbest" style="color:#8ab4d4">--</div>
+      <div class="tc-row" id="tc-qbest-vs">duty loss vs design</div>
+      <div class="tc-row" id="tc-qloss">Capacity -- %</div>
+      <div class="cap-track" style="margin-top:6px"><div class="cap-fill" id="tc-qbar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Card 4: Shell Outlet Deviation -->
+    <div class="tc-cell" id="card-shdev">
+      <div class="tc-name">Shell Outlet Δ</div>
+      <div class="tc-val" id="tc-shdev" style="color:#8ab4d4">--</div>
+      <div class="tc-row">Actual: <span id="tc-shdev-actual">--</span> °C</div>
+      <div class="tc-row" id="tc-shdev-design">Design: -- °C</div>
+      <div class="tc-row" id="tc-shdev-label" style="margin-top:2px">&nbsp;</div>
+    </div>
+
+    <!-- Card 5: Tube Outlet Deviation -->
+    <div class="tc-cell" id="card-tudev">
+      <div class="tc-name">Tube Outlet Δ</div>
+      <div class="tc-val" id="tc-tudev" style="color:#8ab4d4">--</div>
+      <div class="tc-row">Actual: <span id="tc-tudev-actual">--</span> °C</div>
+      <div class="tc-row" id="tc-tudev-design">Design: -- °C</div>
+      <div class="tc-row" id="tc-tudev-label" style="margin-top:2px">&nbsp;</div>
+    </div>
+
+    <!-- Card 6: Capacity Remaining -->
+    <div class="tc-cell">
+      <div class="tc-name">Capacity Remaining</div>
+      <div class="tc-val" id="tc-cap" style="color:#8ab4d4">--</div>
+      <div class="cap-track"><div class="cap-fill" id="tc-capbar" style="width:0%"></div></div>
+      <div class="tc-row" id="tc-cap-text" style="margin-top:5px">&nbsp;</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Diagnostic Insight ─────────────────────────────────────────────────── -->
+<div class="panel p-warn diag-outer">
+  <div class="plabel">Diagnostic Insight</div>
+  <div class="diag-inner" id="diag-content">
+    <div class="diag-idle">Run analysis to generate diagnostic report</div>
+  </div>
+</div>
+
+<div class="foot">Paul &amp; Loughran Ltd · HX Sentinel v2.0 · 4,300 AspenEDR cases · 43 exchangers · 97% accuracy</div>
+
+<script>
+const API = 'http://localhost:5000';
+let chart;
+let JOB_DB     = [];   // loaded from job_database.json
+let currentJob = null; // full record for selected job
+
+// ── Job database loader ───────────────────────────────────────────────────────
+async function fetchJobDB(){
+  try{
+    const r = await fetch('job_database.json');
+    JOB_DB = await r.json();
+    const sel = document.getElementById('job-selector');
+    JOB_DB.forEach(job => {
+      const o = document.createElement('option');
+      o.value = job.job_id;
+      o.textContent = `${job.job_id}  —  ${Number(job.duty_design).toFixed(job.duty_design>=10?0:1)} kW  /  ${Number(job.u_clean).toFixed(0)} W/m²K`;
+      sel.appendChild(o);
+    });
+    // Auto-match saved job id
+    const saved = document.getElementById('db_job').value;
+    if(saved){
+      const match = JOB_DB.find(j => j.job_id === saved);
+      if(match){ sel.value = saved; currentJob = match; }
+    }
+  }catch(e){ console.warn('job_database.json not loaded:', e.message); }
+}
+
+// ── Populate Design Basis from selected job ───────────────────────────────────
+function selectJob(id){
+  if(!id){ currentJob = null; return; }
+  currentJob = JOB_DB.find(j => j.job_id === id);
+  if(!currentJob) return;
+
+  const MAP = {
+    db_job:             'job_id',
+    db_shell_in:        'shell_in',
+    db_tube_in:         'tube_in',
+    db_shell_flow:      'shell_flow',
+    db_std_density:     'std_density',
+    db_duty_design:     'duty_design',
+    db_u_clean:         'u_clean',
+    db_area:            'area',
+    db_f_factor:        'f_factor',
+    db_tube_pres_in:    'tube_pres_in',
+    db_tube_pres_out:   'tube_pres_out',
+    db_dp_allow_ss:     'dp_allow_ss',
+    db_dp_allow_ts:     'dp_allow_ts',
+    db_shell_out_design:'shell_out_design',
+    db_tube_out_design: 'tube_out_design',
+  };
+  Object.entries(MAP).forEach(([elId, key]) => {
+    const el = document.getElementById(elId);
+    if(el && currentJob[key] != null) el.value = currentJob[key];
+  });
+  // Glycol pct is a <select>
+  const gp = document.getElementById('db_glycol_pct');
+  if(gp) gp.value = currentJob.glycol_pct || 40;
+
+  saveDB();
+}
+
+// ── Design Basis localStorage ─────────────────────────────────────────────────
+const DB_KEY = 'hxs_db';
+const DB_IDS = [
+  'db_job','db_shell_in','db_tube_in','db_shell_flow','db_std_density',
+  'db_duty_design','db_u_clean','db_area','db_f_factor','db_glycol_pct',
+  'db_tube_pres_in','db_tube_pres_out','db_dp_allow_ss','db_dp_allow_ts',
+  'db_shell_out_design','db_tube_out_design'
+];
+
+function loadDB(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(DB_KEY) || '{}');
+    DB_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if(el && saved[id] != null) el.value = saved[id];
+    });
+  }catch(e){}
+  updateJobLabel();
+}
+
+function saveDB(){
+  const vals = {};
+  DB_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) vals[id] = el.value;
+  });
+  localStorage.setItem(DB_KEY, JSON.stringify(vals));
+  updateJobLabel();
+}
+
+function updateJobLabel(){
+  // Sync dropdown to db_job field when Design Basis is edited manually
+  const j = document.getElementById('db_job');
+  if(!j) return;
+  const sel = document.getElementById('job-selector');
+  if(sel) sel.value = j.value || '';
+}
+
+function toggleDB(){
+  const body  = document.getElementById('db-body');
+  const arrow = document.getElementById('db-arrow');
+  const open  = body.style.display !== 'none';
+  body.style.display  = open ? 'none' : '';
+  arrow.classList.toggle('closed', open);
+}
+
+// ── API health badge ──────────────────────────────────────────────────────────
+async function checkAPI(){
+  try{
+    const r = await fetch(API+'/health',{signal:AbortSignal.timeout(2000)});
+    if(r.ok){
+      document.getElementById('api-badge').style.cssText='border-color:#00ff9d;color:#00ff9d';
+      document.getElementById('api-status').textContent='API ONLINE';
+      document.querySelector('.bdot').style.background='#00ff9d';
+    } else { throw 0; }
+  }catch{
+    document.getElementById('api-badge').style.cssText='border-color:#ff3d3d;color:#ff3d3d';
+    document.getElementById('api-status').textContent='API OFFLINE';
+    document.querySelector('.bdot').style.cssText='background:#ff3d3d;animation:none';
+  }
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+function initChart(){
+  chart = new Chart(document.getElementById('tc'),{
+    type:'line',
+    data:{
+      labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+      datasets:[
+        {label:'U ratio',data:[1.00,0.98,0.96,0.94,0.92,0.90,0.87,0.85],
+         borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,0.05)',
+         borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#00c8ff',fill:true,tension:0.4},
+        {label:'Warn',data:Array(8).fill(0.85),borderColor:'#ffb800',
+         borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false},
+        {label:'Crit',data:Array(8).fill(0.75),borderColor:'#ff3d3d',
+         borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#8ab4d4',font:{size:9,family:'Share Tech Mono'}},grid:{color:'#1e2d42'}},
+        y:{min:0.55,max:1.05,
+           ticks:{color:'#8ab4d4',font:{size:9,family:'Share Tech Mono'},callback:v=>v.toFixed(2)},
+           grid:{color:'#1e2d42'}}
+      }
+    }
+  });
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const gCol = cls => cls==='healthy'?'#00ff9d':cls==='warning'?'#ffb800':cls==='critical'?'#ff6600':'#ff3d3d';
+const sign  = v  => (v>=0?'+':'')+v.toFixed(1);
+const barC  = p  => p>80?'#ff3d3d':p>50?'#ffb800':'#00c8ff';
+
+function setDot(did,rid,s){
+  const c={ok:'#00ff9d',warning:'#ffb800',danger:'#ff3d3d'};
+  const b={ok:'#1e2d42',warning:'rgba(255,184,0,0.25)',danger:'rgba(255,61,61,0.25)'};
+  document.getElementById(did).style.background=c[s];
+  document.getElementById(rid).style.borderColor=b[s];
+}
+function setStep(msg){document.getElementById('step-info').textContent=msg;}
+function gDB(id){return parseFloat(document.getElementById(id).value)||0;}
+function gSR(id){return parseFloat(document.getElementById(id).value)||0;}
+function gDBStr(id){return document.getElementById(id).value;}
+
+function apiPost(path,body){
+  return fetch(API+path,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),
+    signal:AbortSignal.timeout(15000)
+  }).then(r=>{
+    if(!r.ok) return r.json().then(j=>{throw new Error(j.error||'API '+r.status);}).catch(()=>{throw new Error('API '+r.status);});
+    return r.json();
+  });
+}
+
+// ── Main Analysis Pipeline ────────────────────────────────────────────────────
+async function runAnalysis(){
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  document.getElementById('err-box').style.display='none';
+  ['out_u_actual','out_lmtd','out_q_best'].forEach(id=>document.getElementById(id).textContent='...');
+
+  try{
+    // ── Read design basis ──────────────────────────────────────────────────────
+    const shellInD    = gDB('db_shell_in');        // design shell inlet
+    const tubeInD     = gDB('db_tube_in');         // design tube inlet
+    const shellFlowD  = gDB('db_shell_flow');      // design shell flow kg/h
+    const tubeFlowDesignSCMH = gDB('db_tube_flow_scmh');
+    const stdDens     = gDB('db_std_density');      // 0.72838
+    const dutyDesign  = gDB('db_duty_design');      // 4.5
+    const uClean      = gDB('db_u_clean');          // 291.9
+    const area        = gDB('db_area');             // 0.570
+    const fFactor     = gDB('db_f_factor');         // 0.985
+    const glycolPct   = parseInt(gDBStr('db_glycol_pct'))||40;
+    const tubePresInD  = gDB('db_tube_pres_in');    // design tube inlet pressure
+    const tubePresOutD = gDB('db_tube_pres_out');   // design tube outlet pressure
+    const dpAlloSS    = gDB('db_dp_allow_ss');      // 0.2
+    const dpAlloTS    = gDB('db_dp_allow_ts');      // 0.5
+    const shellOutD   = gDB('db_shell_out_design'); // 35
+    const tubeOutD    = gDB('db_tube_out_design');  // 12.7
+
+    // ── Read site readings ─────────────────────────────────────────────────────
+    const shellInA     = gSR('sr_shell_in');
+    const shellOutA    = gSR('sr_shell_out');
+    const tubeInA      = gSR('sr_tube_in');
+    const tubeOutA     = gSR('sr_tube_out');
+    const shellFlowA   = gSR('sr_shell_flow');
+    const tubeFlowSCMH = gSR('sr_tube_flow');
+    const shellPresA   = gSR('sr_shell_pres');
+    const tubePresInA  = gSR('sr_tube_pres_in');
+    const tubePresOutA = gSR('sr_tube_pres_out');
+    const dpSS         = gSR('sr_dp_ss');
+    const dpTS         = gSR('sr_dp_ts');
+    const tubeVel      = gSR('sr_tube_vel');
+    const rv2          = gSR('sr_rv2');
+
+    // ── STEP 1: Tube gas enthalpy at inlet ────────────────────────────────────
+    setStep('Step 1/4 · Gas enthalpy — inlet…');
+    const fpIn = await apiPost('/fluid_props',{
+      fluid:'mean_bacton_gas',
+      temp_c:tubeInA,
+      pressure_bar:tubePresInA,
+      pressure_units:'barg',
+      prefer_refprop:true
+    });
+    const h_in = fpIn.h_kj_kg;
+
+    // ── STEP 2: Tube gas enthalpy at outlet ───────────────────────────────────
+    setStep('Step 2/4 · Gas enthalpy — outlet…');
+    const fpOut = await apiPost('/fluid_props',{
+      fluid:'mean_bacton_gas',
+      temp_c:tubeOutA,
+      pressure_bar:tubePresOutA,
+      pressure_units:'barg',
+      prefer_refprop:true
+    });
+    const h_out = fpOut.h_kj_kg;
+
+    // ── STEP 3: Duty + LMTD + U actual ────────────────────────────────────────
+    setStep('Step 3/4 · Duty · LMTD · U actual…');
+
+    // Single duty - tube-side enthalpy method matching the manual reference.
+    const tubeMassFlow_kgh = tubeFlowSCMH * stdDens;
+    const Q_kW = (h_out - h_in) * tubeMassFlow_kgh / 3600;       // kJ/kg -> kW
+
+    const dT1 = shellInA  - tubeOutA;
+    const dT2 = shellOutA - tubeInA;
+    let LMTD;
+    if(Math.abs(dT1 - dT2) < 0.001){
+      LMTD = dT1;
+    } else if(dT1 <= 0 || dT2 <= 0 || dT1/dT2 <= 0){
+      LMTD = (dT1 + dT2) / 2;
+    } else {
+      LMTD = (dT1 - dT2) / Math.log(dT1 / dT2);
+    }
+    const U_actual = (LMTD > 0 && area > 0 && fFactor > 0)
+      ? (Q_kW * 1000) / (area * LMTD * fFactor)
+      : 0;
+
+    // ── STEP 4 prep: ratios and deviations ────────────────────────────────────
+    const U_ratio       = uClean > 0 ? U_actual / uClean : 0;
+    const duty_loss_pct = dutyDesign > 0 ? (dutyDesign - Q_kW) / dutyDesign * 100 : 0;
+    const shell_dev     = shellOutA - shellOutD;
+    const tube_dev      = tubeOutA  - tubeOutD;
+    const dp_ratio_SS   = dpAlloSS  > 0 ? dpSS / dpAlloSS : 0;
+    const dp_ratio_TS   = dpAlloTS  > 0 ? dpTS / dpAlloTS : 0;
+    const fouling_index = Math.max(0, (1-U_ratio)*0.5 + dp_ratio_SS*0.25 + dp_ratio_TS*0.25);
+    const capacity      = Math.max(0, Math.min(100, dutyDesign > 0 ? (Q_kW/dutyDesign)*100 : 0));
+
+    // Update computed-output strip
+    document.getElementById('out_u_actual').textContent = U_actual.toFixed(1);
+    document.getElementById('out_lmtd').textContent     = LMTD.toFixed(2);
+    document.getElementById('out_q_best').textContent   = Q_kW.toFixed(3);
+
+    // ── STEP 4: ML prediction ─────────────────────────────────────────────────
+    setStep('Step 4/4 · ML prediction…');
+    // Per-job geometry (falls back to 8497 defaults if no job selected)
+    const geo = currentJob || {};
+    const mlPayload = {
+      HeatTranRatClean:  uClean,
+      HeatTranRatDirty:  U_actual,
+      U_ratio:           U_ratio,
+      PresDropCalcSS:    dpSS,
+      PresDropCalcTS:    dpTS,
+      PresDropAlloSS:    dpAlloSS,
+      PresDropAlloTS:    dpAlloTS,
+      DPratioSS:         dp_ratio_SS,
+      DPratioTS:         dp_ratio_TS,
+      VelThruTubesMaxTS: tubeVel,
+      RV2InNoz:          rv2,
+      FoulResSS:         0.000352,
+      FoulResTS:         0.000176,
+      LMTD:              LMTD,
+      MTDCorrFactor:     fFactor,
+      TempInSS:          shellInA,
+      TempInTS:          tubeInA,
+      FilmCoefSS:        geo.film_coef_ss      || 490.2,
+      FilmCoefTS:        geo.film_coef_ts      || 763.44,
+      TubeNum:           geo.tube_num          || 17,
+      TubeOD:            geo.tube_od           || 12.7,
+      TubeID:            geo.tube_id           || 9.4,
+      TubeLng:           geo.tube_lng          || 936,
+      ShlID:             geo.shl_id            || 102.26,
+      BafNum:            geo.baf_num           || 7,
+      BafSpcCC:          geo.baf_spc           || 100,
+      BafCutPerc:        geo.baf_cut           || 25,
+      TubePassNum:       geo.tube_pass         || 1,
+      Area:              area,
+      FlRaTotalSS:       shellFlowA || shellFlowD,
+      FlRaTotalTS:       tubeMassFlow_kgh || geo.tube_flow_kgh || (tubeFlowDesignSCMH * stdDens),
+      PresOperInSS:      shellPresA,
+      PresOperInTS:      tubePresInA || tubePresInD,
+      DP_shell_ratio:    dp_ratio_SS,
+      DP_tube_ratio:     dp_ratio_TS,
+      VelCrossFlowMaxSS: geo.vel_cross_design  || 0.1567225,
+      RV2BundleEnt:      geo.rv2_bundle_design || 60.1122,
+    };
+    const mlResult = await apiPost('/predict', mlPayload);
+
+    // ── Display all results ────────────────────────────────────────────────────
+    const derived = mlResult.derived_features || {};
+    const urF  = derived.U_ratio        != null ? derived.U_ratio        : U_ratio;
+    const rSSF = derived.DP_shell_ratio != null ? derived.DP_shell_ratio : dp_ratio_SS;
+    const rTSF = derived.DP_tube_ratio  != null ? derived.DP_tube_ratio  : dp_ratio_TS;
+
+    displayHealth(mlResult, urF, rSSF, rTSF);
+    displayTEMA(tubeVel, rv2, rSSF, rTSF, dpSS, urF, fouling_index, mlResult.maintenance_class);
+    displayThermal({
+      Q_kW, U_actual, U_ratio, dutyDesign, duty_loss_pct,
+      shell_dev, tube_dev, shellOutA, tubeOutA, shellOutD, tubeOutD, capacity
+    });
+    displayDiagnostic({shell_dev, tube_dev, duty_loss_pct, U_ratio:urF, dp_ratio_SS:rSSF, dp_ratio_TS:rTSF});
+
+    setTimeout(()=>setStep(' '), 1800);
+
+  }catch(e){
+    const msg = (e.name==='AbortError'||e.name==='TimeoutError')
+      ? 'Request timed out — is the API running? (start_api.bat)'
+      : 'Error: '+(e.message||'API offline');
+    document.getElementById('err-box').style.display='block';
+    document.getElementById('err-box').textContent = msg;
+    ['out_u_actual','out_lmtd','out_q_best'].forEach(id=>document.getElementById(id).textContent='--');
+    setStep(' ');
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+// ── Display: Health panel ─────────────────────────────────────────────────────
+function displayHealth(ml, ur, rSS, rTS){
+  const cls   = ml.maintenance_class;
+  const ar    = ml.area_ratio;
+  const probs = ml.maintenance_class_probabilities || {};
+  const score = Math.round(Math.max(0,Math.min(100,ur*100)));
+  const c     = gCol(cls);
+
+  const circ = 326.73;
+  document.getElementById('rf').style.strokeDashoffset = circ-(score/100)*circ;
+  document.getElementById('rf').style.stroke = c;
+  document.getElementById('rs').textContent  = score;
+  document.getElementById('hc').textContent  = cls.toUpperCase();
+  document.getElementById('hc').style.color  = c;
+  document.getElementById('ar').textContent  = ar.toFixed(3);
+
+  const actions = {
+    healthy: 'No action required — continue monitoring',
+    warning: 'Monitor closely — schedule inspection within 30 days',
+    critical:'Schedule cleaning urgently — performance degraded',
+    failed:  'IMMEDIATE ACTION — exchanger cannot meet design duty'
+  };
+  const ab  = document.getElementById('ab');
+  ab.textContent = actions[cls] || actions.healthy;
+  ab.style.borderColor = c; ab.style.color = c;
+  const rgb = cls==='healthy'?'0,255,157':cls==='warning'?'255,184,0':cls==='critical'?'255,102,0':'255,61,61';
+  ab.style.background = `rgba(${rgb},0.05)`;
+
+  const ph=(probs.healthy||0)*100, pw=(probs.warning||0)*100,
+        pc=(probs.critical||0)*100, pf=(probs.failed||0)*100;
+  [['pb-h',ph,'pv-h'],['pb-w',pw,'pv-w'],['pb-c',pc,'pv-c'],['pb-f',pf,'pv-f']].forEach(([b,v,t])=>{
+    document.getElementById(b).style.width=v+'%';
+    document.getElementById(t).textContent=v.toFixed(0)+'%';
+  });
+
+  const sfp=rSS*100, tfp=rTS*100, udp=(1-ur)*100;
+  document.getElementById('sfb').style.width=Math.min(sfp,100)+'%';
+  document.getElementById('sfb').style.background=barC(sfp);
+  document.getElementById('sfp').textContent=sfp.toFixed(1)+'%';
+  document.getElementById('tfb').style.width=Math.min(tfp,100)+'%';
+  document.getElementById('tfb').style.background=barC(tfp);
+  document.getElementById('tfp').textContent=tfp.toFixed(1)+'%';
+  document.getElementById('udb').style.width=Math.min(udp,100)+'%';
+  document.getElementById('udb').style.background=udp>25?'#ff3d3d':udp>15?'#ffb800':'#00ff9d';
+  document.getElementById('udp').textContent=udp.toFixed(1)+'%';
+}
+
+// ── Display: TEMA + Performance ───────────────────────────────────────────────
+function displayTEMA(tv, rv2, rSS, rTS, dpSS, ur, fi, cls){
+  const c = gCol(cls);
+  document.getElementById('tv-v').textContent=tv.toFixed(1)+' m/s';
+  setDot('tv-d','tr-tv',tv>40?'danger':tv>32?'warning':'ok');
+  document.getElementById('rv-v').textContent=Math.round(rv2)+' kg/m·s²';
+  setDot('rv-d','tr-rv',rv2>2232?'danger':rv2>1786?'warning':'ok');
+  document.getElementById('ds-v').textContent=(rSS*100).toFixed(1)+'%';
+  setDot('ds-d','tr-ds',rSS>1?'danger':rSS>0.8?'warning':'ok');
+  document.getElementById('dt-v').textContent=(rTS*100).toFixed(1)+'%';
+  setDot('dt-d','tr-dt',rTS>1?'danger':rTS>0.8?'warning':'ok');
+
+  document.getElementById('m-ur').textContent=ur.toFixed(3); document.getElementById('m-ur').style.color=c;
+  document.getElementById('m-fi').textContent=fi.toFixed(3); document.getElementById('m-fi').style.color=c;
+  document.getElementById('m-ds').textContent=dpSS.toFixed(5);
+  document.getElementById('m-tv').textContent=tv.toFixed(1);
+
+  if(chart){
+    const d=chart.data.datasets[0].data, l=chart.data.labels;
+    d.push(parseFloat(ur.toFixed(3))); l.push('Now');
+    if(d.length>10){d.shift();l.shift();}
+    chart.data.datasets[1].data=Array(l.length).fill(0.85);
+    chart.data.datasets[2].data=Array(l.length).fill(0.75);
+    chart.data.datasets[0].borderColor=c;
+    chart.update();
+  }
+}
+
+// ── Display: Thermal Performance cards ───────────────────────────────────────
+function displayThermal({Q_kW, U_actual, U_ratio, dutyDesign, duty_loss_pct,
+                          shell_dev, tube_dev, shellOutA, tubeOutA, shellOutD, tubeOutD, capacity}){
+
+  const dutyLossCol = l => l < 5 ? '#00ff9d' : l < 15 ? '#ffb800' : '#ff3d3d';
+  const uRatioCol   = r => r >= 0.85 ? '#00ff9d' : r >= 0.72 ? '#ffb800' : '#ff3d3d';
+
+  // Card 1: Exchanger Duty (single, tube-side enthalpy)
+  const c1 = dutyLossCol(duty_loss_pct);
+  document.getElementById('tc-qshell').textContent = Q_kW.toFixed(3)+' kW';
+  document.getElementById('tc-qshell').style.color = c1;
+  document.getElementById('tc-qshell-loss').innerHTML =
+    `vs design <span style="color:${c1}">${dutyDesign.toFixed(1)} kW</span>`;
+  document.getElementById('card-qshell').style.borderColor = c1;
+
+  // Card 2: U actual / U ratio
+  const c2 = uRatioCol(U_ratio);
+  document.getElementById('tc-qtube').textContent = U_actual.toFixed(1)+' W/m²K';
+  document.getElementById('tc-qtube').style.color = c2;
+  document.getElementById('tc-qtube-loss').innerHTML =
+    `U ratio <span style="color:${c2}">${U_ratio.toFixed(3)}</span>`;
+  document.getElementById('card-qtube').style.borderColor = c2;
+
+  // Card 3: Duty loss + progress bar
+  const c3 = dutyLossCol(duty_loss_pct);
+  document.getElementById('tc-qbest').textContent = duty_loss_pct.toFixed(1)+'%';
+  document.getElementById('tc-qbest').style.color = c3;
+  document.getElementById('tc-qbest-vs').innerHTML = `duty loss vs design`;
+  document.getElementById('tc-qloss').innerHTML =
+    `Capacity <span style="color:${c3}">${capacity.toFixed(0)}%</span>`;
+  document.getElementById('tc-qbar').style.width = Math.min(capacity,100)+'%';
+  document.getElementById('tc-qbar').style.background = c3;
+
+  // Card 4: Shell Outlet Deviation
+  const c4 = Math.abs(shell_dev)<=1 ? '#00ff9d' : Math.abs(shell_dev)<=3 ? '#ffb800' : '#ff3d3d';
+  document.getElementById('tc-shdev').textContent = sign(shell_dev)+'°C';
+  document.getElementById('tc-shdev').style.color = c4;
+  document.getElementById('tc-shdev-actual').textContent = shellOutA.toFixed(1);
+  document.getElementById('tc-shdev-design').innerHTML = `Design: <span>${shellOutD.toFixed(1)} °C</span>`;
+  document.getElementById('tc-shdev-label').innerHTML = shell_dev>3
+    ? `<span style="color:#ff3d3d">Significant fouling</span>`
+    : shell_dev>1 ? `<span style="color:#ffb800">Early fouling</span>`
+    : `<span style="color:#00ff9d">Within tolerance</span>`;
+  document.getElementById('card-shdev').style.borderColor = c4;
+
+  // Card 5: Tube Outlet Deviation
+  const c5 = tube_dev >= -1 ? '#00ff9d' : tube_dev >= -3 ? '#ffb800' : '#ff3d3d';
+  document.getElementById('tc-tudev').textContent = sign(tube_dev)+'°C';
+  document.getElementById('tc-tudev').style.color = c5;
+  document.getElementById('tc-tudev-actual').textContent = tubeOutA.toFixed(1);
+  document.getElementById('tc-tudev-design').innerHTML = `Design: <span>${tubeOutD.toFixed(1)} °C</span>`;
+  document.getElementById('tc-tudev-label').innerHTML = tube_dev<-3
+    ? `<span style="color:#ff3d3d">Significant fouling</span>`
+    : tube_dev<-1 ? `<span style="color:#ffb800">Early fouling</span>`
+    : `<span style="color:#00ff9d">Within tolerance</span>`;
+  document.getElementById('card-tudev').style.borderColor = c5;
+
+  // Card 6: Capacity Remaining
+  const c6 = capacity>95 ? '#00ff9d' : capacity>85 ? '#ffb800' : '#ff3d3d';
+  document.getElementById('tc-cap').textContent = capacity.toFixed(0)+'%';
+  document.getElementById('tc-cap').style.color = c6;
+  document.getElementById('tc-capbar').style.width = capacity.toFixed(0)+'%';
+  document.getElementById('tc-capbar').style.background = c6;
+  document.getElementById('tc-cap-text').innerHTML =
+    `<span>Delivering ${Q_kW.toFixed(2)} kW of ${dutyDesign.toFixed(1)} kW design</span>`;
+}
+
+// ── Display: Diagnostic Insight ───────────────────────────────────────────────
+function displayDiagnostic({shell_dev, tube_dev, duty_loss_pct, U_ratio, dp_ratio_SS, dp_ratio_TS}){
+  const msgs = [];
+
+  if(shell_dev > 3)
+    msgs.push({cls:'diag-danger', text:`Shell outlet ${shell_dev.toFixed(1)}°C above design — significant shell side fouling. Glycol not being cooled to design temperature.`});
+  else if(shell_dev > 1)
+    msgs.push({cls:'diag-warning', text:`Shell outlet ${shell_dev.toFixed(1)}°C above design — early shell side fouling detected.`});
+
+  if(tube_dev < -3)
+    msgs.push({cls:'diag-danger', text:`Tube outlet ${Math.abs(tube_dev).toFixed(1)}°C below design — significant tube side fouling. Gas not being heated to design temperature.`});
+  else if(tube_dev < -1)
+    msgs.push({cls:'diag-warning', text:`Tube outlet ${Math.abs(tube_dev).toFixed(1)}°C below design — early tube side fouling detected.`});
+
+  if(duty_loss_pct > 15)
+    msgs.push({cls:'diag-danger', text:`Heat duty ${duty_loss_pct.toFixed(1)}% below design — exchanger cannot meet process requirement.`});
+  else if(duty_loss_pct > 5)
+    msgs.push({cls:'diag-warning', text:`Heat duty ${duty_loss_pct.toFixed(1)}% below design — performance degrading.`});
+
+  if(U_ratio < 0.72)
+    msgs.push({cls:'diag-danger', text:`Overall heat transfer coefficient degraded ${Math.round((1-U_ratio)*100)}% from clean baseline — immediate cleaning required.`});
+  else if(U_ratio < 0.85)
+    msgs.push({cls:'diag-warning', text:`U value degraded ${Math.round((1-U_ratio)*100)}% — monitor closely.`});
+
+  if(dp_ratio_SS > 1.0)
+    msgs.push({cls:'diag-danger', text:`Shell ΔP at ${Math.round(dp_ratio_SS*100)}% of allowable limit — limit EXCEEDED.`});
+  else if(dp_ratio_SS > 0.8)
+    msgs.push({cls:'diag-warning', text:`Shell ΔP at ${Math.round(dp_ratio_SS*100)}% of allowable limit.`});
+
+  if(dp_ratio_TS > 1.0)
+    msgs.push({cls:'diag-danger', text:`Tube ΔP at ${Math.round(dp_ratio_TS*100)}% of allowable limit — limit EXCEEDED.`});
+  else if(dp_ratio_TS > 0.8)
+    msgs.push({cls:'diag-warning', text:`Tube ΔP at ${Math.round(dp_ratio_TS*100)}% of allowable limit.`});
+
+  const content = document.getElementById('diag-content');
+  if(msgs.length === 0){
+    content.innerHTML = '<div class="diag-ok">All parameters within normal range. Exchanger performing to design specification.</div>';
+  } else {
+    content.innerHTML = msgs.map(m=>`<div class="diag-msg ${m.cls}">${m.text}</div>`).join('');
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  loadDB();
+  fetchJobDB();
+  checkAPI();
+  initChart();
+  setInterval(checkAPI, 10000);
+});
+</script>
+</body>
+</html>

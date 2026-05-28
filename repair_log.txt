@@ -1,0 +1,25 @@
+﻿[10:41:07] === repair_two_cases.ps1 starting ===
+[10:41:07] Base file: C:\Apps\pRDEICTIEV mIANTENANCE\EDR_ML\8497 DUTY REV 1.EDR  (251795 bytes)
+[10:41:07] Regenerating 2 EDR files from base...
+[10:41:07]   Written: 8497_var_CS0.000684_HS0.000342.EDR  (251795 bytes)
+[10:41:07]     FoulResCS=0.000684 (wanted 0.000684)  FoulResHS=0.000342 (wanted 0.000342)
+[10:41:07]   Written: 8497_var_CS0.000684_HS0.000440.EDR  (251795 bytes)
+[10:41:07]     FoulResCS=0.000684 (wanted 0.000684)  FoulResHS=0.000440 (wanted 0.000440)
+[10:41:07] Starting COM...
+[10:41:09] COM ready
+[10:41:09] Running: 8497_var_CS0.000684_HS0.000342.EDR
+[10:41:14]   ResultCode=101  RunStatus=OK  FileSize=251256 bytes
+[10:41:14]   HeatTranRatDirty=213.5527  AreaRatioDirty=0.9528993
+[10:41:14] Running: 8497_var_CS0.000684_HS0.000440.EDR
+[10:41:15]   ResultCode=101  RunStatus=OK  FileSize=251254 bytes
+[10:41:15]   HeatTranRatDirty=209.2083  AreaRatioDirty=0.9335206
+[10:41:15] Building results_8497_clean.csv...
+[10:41:15]   Loaded 100 rows from results_8497.csv
+[10:41:15]   After removing 2 rows: 98 rows remain
+[10:41:16] Validating results_8497_clean.csv...
+[10:41:16]   Total rows: 100
+[10:41:16]   HeatTranRatDirty empty/zero: 0
+[10:41:16]   AreaRatioDirty   empty/zero: 0
+[10:41:16]   Non-OK RunStatus:            0
+[10:41:16] ALL CHECKS PASSED - 100 clean rows confirmed.
+[10:41:16] === Done. Output: C:\Apps\pRDEICTIEV mIANTENANCE\EDR_ML\results_8497_clean.csv ===
