@@ -178,7 +178,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="f"><label>Tube flow design (SCMH)</label><input type="number" id="db_tube_flow_scmh" value="1249" step="1" oninput="saveDB()"><div class="un">design gas flow</div></div>
       <div class="f"><label>Std gas density (kg/m³)</label><input type="number" id="db_std_density" value="0.72838" step="0.00001" oninput="saveDB()"><div class="un">standard conditions</div></div>
       <div class="f"><label>Duty design (kW)</label><input type="number" id="db_duty_design" value="4.5" step="0.1" oninput="saveDB()"><div class="un">design heat duty</div></div>
-      <div class="f"><label>U clean (W/m²K)</label><input type="number" id="db_u_clean" value="291.9" step="1" oninput="saveDB()"><div class="un">clean baseline</div></div>
+      <div class="f"><label>U clean (W/m²K)</label><input type="number" id="db_u_clean" value="291.9" step="1" oninput="saveDB()"><div class="un">HeatTranRatClean (ML feature)</div></div>
+      <div class="f"><label>U service clean (W/m²K)</label><input type="number" id="db_u_service_clean" value="" step="1" oninput="saveDB()" placeholder="from job"><div class="un">HeatTranRatService — U_ratio baseline (auto-loaded)</div></div>
       <div class="f"><label>Area (m²)</label><input type="number" id="db_area" value="0.570" step="0.001" oninput="saveDB()"><div class="un">heat transfer area</div></div>
 
       <div class="f"><label>F correction</label><input type="number" id="db_f_factor" value="0.985" step="0.001" oninput="saveDB()"><div class="un">MTD correction</div></div>
@@ -191,8 +192,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
         </select>
         <div class="un">shell-side fluid</div>
       </div>
-      <div class="f"><label>Tube pressure in (barg)</label><input type="number" id="db_tube_pres_in" value="76" step="0.1" oninput="saveDB()"><div class="un">tube inlet</div></div>
-      <div class="f"><label>Tube pressure out (barg)</label><input type="number" id="db_tube_pres_out" value="75.5" step="0.1" oninput="saveDB()"><div class="un">tube outlet</div></div>
+      <div class="f"><label>Tube pressure in (barg)</label><input type="number" id="db_tube_pres_in" value="76" step="0.1" oninput="saveDB()"><div class="un">tube inlet (gauge)</div></div>
+      <div class="f"><label>Tube pressure out (barg)</label><input type="number" id="db_tube_pres_out" value="75.5" step="0.1" oninput="saveDB()"><div class="un">tube outlet (gauge)</div></div>
 
       <div class="f"><label>Shell ΔP allowable (bar)</label><input type="number" id="db_dp_allow_ss" value="0.2" step="0.01" oninput="saveDB()"><div class="un">limit</div></div>
       <div class="f"><label>Tube ΔP allowable (bar)</label><input type="number" id="db_dp_allow_ts" value="0.5" step="0.01" oninput="saveDB()"><div class="un">limit</div></div>
@@ -226,24 +227,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="f"><label>Tube gas flow actual (SCMH)</label><input type="number" id="sr_tube_flow" value="1249" step="1"><div class="un">standard m³/h</div></div>
     </div>
 
-    <div class="psub">Pressure (barg)</div>
+    <div class="psub">Pressure (barg — gauge)</div>
     <div class="irow">
-      <div class="f"><label>Shell pressure actual</label><input type="number" id="sr_shell_pres" value="4" step="0.1"><div class="un">shell operating</div></div>
-      <div class="f"><label>Tube pressure in actual</label><input type="number" id="sr_tube_pres_in" value="76" step="0.1"><div class="un">tube inlet</div></div>
+      <div class="f"><label>Shell pressure in actual (barg)</label><input type="number" id="sr_shell_pres_in" value="4" step="0.1"><div class="un">shell inlet (gauge)</div></div>
+      <div class="f"><label>Shell pressure out actual (barg)</label><input type="number" id="sr_shell_pres_out" value="3.99939" step="0.1"><div class="un">shell outlet (gauge)</div></div>
     </div>
     <div class="irow">
-      <div class="f"><label>Tube pressure out actual</label><input type="number" id="sr_tube_pres_out" value="75.5" step="0.1"><div class="un">tube outlet</div></div>
-      <div class="f"></div>
+      <div class="f"><label>Tube pressure in actual (barg)</label><input type="number" id="sr_tube_pres_in" value="76" step="0.1"><div class="un">tube inlet (gauge)</div></div>
+      <div class="f"><label>Tube pressure out actual (barg)</label><input type="number" id="sr_tube_pres_out" value="75.5" step="0.1"><div class="un">tube outlet (gauge)</div></div>
     </div>
 
-    <div class="psub">Hydraulics</div>
-    <div class="irow">
-      <div class="f"><label>Shell &#916;P actual (bar)</label><input type="number" id="sr_dp_ss" value="0.00061" step="0.00001"><div class="un">measured</div></div>
-      <div class="f"><label>Tube &#916;P actual (bar)</label><input type="number" id="sr_dp_ts" value="0.0368" step="0.0001"><div class="un">measured</div></div>
-    </div>
-    <div class="irow">
-      <div class="f"><label>Tube velocity actual (m/s)</label><input type="number" id="sr_tube_vel" value="11.2" step="0.1"><div class="un">measured</div></div>
-      <div class="f"><label>Rho&#xB7;V&#xB2; nozzle actual</label><input type="number" id="sr_rv2" value="1291" step="10"><div class="un">kg/m&#xB7;s&#xB2;</div></div>
+    <div class="psub">Hydraulics (computed from pressures + geometry)</div>
+    <div class="out-strip">
+      <div class="out-cell"><div class="out-label">Shell &#916;P (bar)</div><div class="out-val" id="out_dp_ss">--</div></div>
+      <div class="out-cell"><div class="out-label">Tube &#916;P (bar)</div><div class="out-val" id="out_dp_ts">--</div></div>
+      <div class="out-cell"><div class="out-label">Tube vel (m/s)</div><div class="out-val" id="out_tube_vel">--</div></div>
+      <div class="out-cell"><div class="out-label">Rho&#xB7;V&#xB2;</div><div class="out-val" id="out_rv2">--</div></div>
     </div>
 
     <div class="psub">Calculated outputs</div>
@@ -422,11 +421,14 @@ async function fetchJobDB(){
       o.textContent = `${job.job_id}  —  ${Number(job.duty_design).toFixed(job.duty_design>=10?0:1)} kW  /  ${Number(job.u_clean).toFixed(0)} W/m²K`;
       sel.appendChild(o);
     });
-    // Auto-match saved job id
+    // Auto-match saved job id — must invoke selectJob() so every Design Basis
+    // field gets refreshed from the JSON. Just setting currentJob leaves the
+    // input fields on whatever localStorage / HTML defaults they had, which
+    // silently mis-reads u_service_clean and produces wrong U_ratio.
     const saved = document.getElementById('db_job').value;
-    if(saved){
-      const match = JOB_DB.find(j => j.job_id === saved);
-      if(match){ sel.value = saved; currentJob = match; }
+    if(saved && JOB_DB.find(j => j.job_id === saved)){
+      sel.value = saved;
+      selectJob(saved);
     }
   }catch(e){ console.warn('job_database.json not loaded:', e.message); }
 }
@@ -445,6 +447,7 @@ function selectJob(id){
     db_std_density:     'std_density',
     db_duty_design:     'duty_design',
     db_u_clean:         'u_clean',
+    db_u_service_clean: 'u_service_clean',
     db_area:            'area',
     db_f_factor:        'f_factor',
     db_tube_pres_in:    'tube_pres_in',
@@ -469,7 +472,7 @@ function selectJob(id){
 const DB_KEY = 'hxs_db';
 const DB_IDS = [
   'db_job','db_shell_in','db_tube_in','db_shell_flow','db_std_density',
-  'db_duty_design','db_u_clean','db_area','db_f_factor','db_glycol_pct',
+  'db_duty_design','db_u_clean','db_u_service_clean','db_area','db_f_factor','db_glycol_pct',
   'db_tube_pres_in','db_tube_pres_out','db_dp_allow_ss','db_dp_allow_ts',
   'db_shell_out_design','db_tube_out_design'
 ];
@@ -599,9 +602,10 @@ async function runAnalysis(){
     const tubeFlowDesignSCMH = gDB('db_tube_flow_scmh');
     const stdDens     = gDB('db_std_density');      // 0.72838
     const dutyDesign  = gDB('db_duty_design');      // 4.5
-    const uClean      = gDB('db_u_clean');          // 291.9
-    const area        = gDB('db_area');             // 0.570
-    const fFactor     = gDB('db_f_factor');         // 0.985
+    const uClean        = gDB('db_u_clean');           // HeatTranRatClean — ML feature
+    const uServiceClean = gDB('db_u_service_clean');   // HeatTranRatService — U_ratio baseline
+    const area          = gDB('db_area');              // 0.570
+    const fFactor       = gDB('db_f_factor');          // 0.985
     const glycolPct   = parseInt(gDBStr('db_glycol_pct'))||40;
     const tubePresInD  = gDB('db_tube_pres_in');    // design tube inlet pressure
     const tubePresOutD = gDB('db_tube_pres_out');   // design tube outlet pressure
@@ -611,19 +615,20 @@ async function runAnalysis(){
     const tubeOutD    = gDB('db_tube_out_design');  // 12.7
 
     // ── Read site readings ─────────────────────────────────────────────────────
-    const shellInA     = gSR('sr_shell_in');
-    const shellOutA    = gSR('sr_shell_out');
-    const tubeInA      = gSR('sr_tube_in');
-    const tubeOutA     = gSR('sr_tube_out');
-    const shellFlowA   = gSR('sr_shell_flow');
-    const tubeFlowSCMH = gSR('sr_tube_flow');
-    const shellPresA   = gSR('sr_shell_pres');
-    const tubePresInA  = gSR('sr_tube_pres_in');
-    const tubePresOutA = gSR('sr_tube_pres_out');
-    const dpSS         = gSR('sr_dp_ss');
-    const dpTS         = gSR('sr_dp_ts');
-    const tubeVel      = gSR('sr_tube_vel');
-    const rv2          = gSR('sr_rv2');
+    const shellInA       = gSR('sr_shell_in');
+    const shellOutA      = gSR('sr_shell_out');
+    const tubeInA        = gSR('sr_tube_in');
+    const tubeOutA       = gSR('sr_tube_out');
+    const shellFlowA     = gSR('sr_shell_flow');
+    const tubeFlowSCMH   = gSR('sr_tube_flow');
+    const shellPresInA   = gSR('sr_shell_pres_in');
+    const shellPresOutA  = gSR('sr_shell_pres_out');
+    const tubePresInA    = gSR('sr_tube_pres_in');
+    const tubePresOutA   = gSR('sr_tube_pres_out');
+
+    // FIX 2: ΔP is computed from inlet/outlet pressures (no more manual fields)
+    const dpSS = Math.max(0, shellPresInA - shellPresOutA);
+    const dpTS = Math.max(0, tubePresInA  - tubePresOutA);
 
     // ── STEP 1: Tube gas enthalpy at inlet ────────────────────────────────────
     setStep('Step 1/4 · Gas enthalpy — inlet…');
@@ -652,7 +657,21 @@ async function runAnalysis(){
 
     // Single duty - tube-side enthalpy method matching the manual reference.
     const tubeMassFlow_kgh = tubeFlowSCMH * stdDens;
+    const tubeMassFlow_kgs = tubeMassFlow_kgh / 3600;
     const Q_kW = (h_out - h_in) * tubeMassFlow_kgh / 3600;       // kJ/kg -> kW
+
+    // ── FIX 3: tube velocity + RhoV² (no more manual fields) ─────────────────
+    // density: REFPROP-direct at mean tube conditions (average of inlet/outlet).
+    // flow area: π/4 · ID² · tubes-per-pass.
+    const tube_density   = (fpIn.density_kg_m3 + fpOut.density_kg_m3) / 2;
+    const tube_id_m      = (currentJob && currentJob.tube_id ? currentJob.tube_id : 0) / 1000;
+    const tube_count     =  currentJob && currentJob.tube_num  ? currentJob.tube_num  : 0;
+    const tube_pass_num  = (currentJob && currentJob.tube_pass) ? currentJob.tube_pass : 1;
+    const tube_flow_area = (Math.PI / 4) * tube_id_m * tube_id_m * (tube_count / tube_pass_num);
+    const tubeVel        = (tube_density > 0 && tube_flow_area > 0)
+        ? tubeMassFlow_kgs / (tube_density * tube_flow_area)
+        : 0;
+    const rv2            = tube_density * tubeVel * tubeVel;
 
     const dT1 = shellInA  - tubeOutA;
     const dT2 = shellOutA - tubeInA;
@@ -669,8 +688,23 @@ async function runAnalysis(){
       : 0;
 
     // ── STEP 4 prep: ratios and deviations ────────────────────────────────────
-    const U_ratio       = uClean > 0 ? U_actual / uClean : 0;
+    // U_ratio compares site U_actual to clean-baseline SERVICE U (HeatTranRatService).
+    // Hard requirement: u_service_clean must be loaded from the job. No silent
+    // fallback — a missing baseline produced bug "U_ratio=2.193" when 186 was
+    // being used as the divisor instead of 628.5.
+    if (!(uServiceClean > 0)) {
+      throw new Error(
+        `u_service_clean is not loaded for the selected job (got ${uServiceClean}). ` +
+        `Re-pick the job from the dropdown to refresh design basis.`
+      );
+    }
+    const U_ratio       = U_actual / uServiceClean;
     const duty_loss_pct = dutyDesign > 0 ? (dutyDesign - Q_kW) / dutyDesign * 100 : 0;
+
+    console.log('[HX] loaded design values:',
+                {dutyDesign, uClean, uServiceClean, area, fFactor});
+    console.log('[HX] computed:',
+                {Q_kW, U_actual, U_ratio, duty_loss_pct});
     const shell_dev     = shellOutA - shellOutD;
     const tube_dev      = tubeOutA  - tubeOutD;
     const dp_ratio_SS   = dpAlloSS  > 0 ? dpSS / dpAlloSS : 0;
@@ -682,13 +716,21 @@ async function runAnalysis(){
     document.getElementById('out_u_actual').textContent = U_actual.toFixed(1);
     document.getElementById('out_lmtd').textContent     = LMTD.toFixed(2);
     document.getElementById('out_q_best').textContent   = Q_kW.toFixed(3);
+    // Hydraulics strip (computed)
+    document.getElementById('out_dp_ss').textContent   = dpSS.toFixed(5);
+    document.getElementById('out_dp_ts').textContent   = dpTS.toFixed(4);
+    document.getElementById('out_tube_vel').textContent = tubeVel.toFixed(2);
+    document.getElementById('out_rv2').textContent     = Math.round(rv2);
 
     // ── STEP 4: ML prediction ─────────────────────────────────────────────────
     setStep('Step 4/4 · ML prediction…');
     // Per-job geometry (falls back to 8497 defaults if no job selected)
     const geo = currentJob || {};
+    // ML payload uses u_service_clean as HeatTranRatClean so the API's derived
+    // U_ratio = HeatTranRatDirty / HeatTranRatClean equals U_actual / u_service_clean
+    // — the same number the dashboard displays. No rescaling.
     const mlPayload = {
-      HeatTranRatClean:  uClean,
+      HeatTranRatClean:  uServiceClean,
       HeatTranRatDirty:  U_actual,
       U_ratio:           U_ratio,
       PresDropCalcSS:    dpSS,
@@ -719,7 +761,7 @@ async function runAnalysis(){
       Area:              area,
       FlRaTotalSS:       shellFlowA || shellFlowD,
       FlRaTotalTS:       tubeMassFlow_kgh || geo.tube_flow_kgh || (tubeFlowDesignSCMH * stdDens),
-      PresOperInSS:      shellPresA,
+      PresOperInSS:      shellPresInA,
       PresOperInTS:      tubePresInA || tubePresInD,
       DP_shell_ratio:    dp_ratio_SS,
       DP_tube_ratio:     dp_ratio_TS,
@@ -727,6 +769,71 @@ async function runAnalysis(){
       RV2BundleEnt:      geo.rv2_bundle_design || 60.1122,
     };
     const mlResult = await apiPost('/predict', mlPayload);
+
+    // ── Safety overrides — physical evidence overrides the ML verdict ─────────
+    // Severity rank (higher = worse): healthy 0, warning 1, critical 2, failed 3.
+    //
+    //  duty_loss > 40%  --> status = FAILED   (exact, regardless of ML)
+    //  duty_loss > 20%  --> status = CRITICAL (exact -- caps FAILED, escalates HEALTHY)
+    //  duty_loss > 5%   --> status = WARNING  (exact)
+    //
+    //  tube_dev < -3 C  --> floor only: status must be at least CRITICAL
+    //  tube_dev < -1 C  --> floor only: status must be at least WARNING
+    //
+    // Tube-outlet floors only ESCALATE — they never relax a duty-loss verdict.
+    const SEV = {healthy:0, warning:1, critical:2, failed:3};
+    const worseOf = (a, b) => SEV[a] >= SEV[b] ? a : b;
+
+    let finalClass = mlResult.maintenance_class;
+    const overrideReasons = [];
+
+    if (duty_loss_pct > 40) {
+        if (finalClass !== 'failed') overrideReasons.push(`duty loss ${duty_loss_pct.toFixed(1)}% > 40% → FAILED`);
+        finalClass = 'failed';
+    } else if (duty_loss_pct > 20) {
+        if (finalClass !== 'critical') overrideReasons.push(`duty loss ${duty_loss_pct.toFixed(1)}% in (20, 40] → CRITICAL`);
+        finalClass = 'critical';
+    } else if (duty_loss_pct > 5) {
+        if (finalClass !== 'warning') overrideReasons.push(`duty loss ${duty_loss_pct.toFixed(1)}% in (5, 20] → WARNING`);
+        finalClass = 'warning';
+    }
+
+    if (tube_dev < -3) {
+        const escalated = worseOf(finalClass, 'critical');
+        if (escalated !== finalClass) overrideReasons.push(`tube outlet ${tube_dev.toFixed(1)}°C below design → ≥ CRITICAL`);
+        finalClass = escalated;
+    } else if (tube_dev < -1) {
+        const escalated = worseOf(finalClass, 'warning');
+        if (escalated !== finalClass) overrideReasons.push(`tube outlet ${tube_dev.toFixed(1)}°C below design → ≥ WARNING`);
+        finalClass = escalated;
+    }
+
+    // ΔP floors — high pressure drop alone (without thermal degradation) still
+    // indicates fouling / blockage and must escalate the status.
+    const maxDpRatio = Math.max(dp_ratio_SS, dp_ratio_TS);
+    if (maxDpRatio > 1.0) {
+        const escalated = worseOf(finalClass, 'critical');
+        if (escalated !== finalClass) overrideReasons.push(`ΔP ratio ${(maxDpRatio*100).toFixed(0)}% (> allowable) → ≥ CRITICAL`);
+        finalClass = escalated;
+    } else if (maxDpRatio > 0.8) {
+        const escalated = worseOf(finalClass, 'warning');
+        if (escalated !== finalClass) overrideReasons.push(`ΔP ratio ${(maxDpRatio*100).toFixed(0)}% (> 80% of allowable) → ≥ WARNING`);
+        finalClass = escalated;
+    }
+
+    if (overrideReasons.length) {
+        console.log('[HX] safety overrides applied:', overrideReasons,
+                    'ML said', mlResult.maintenance_class, '→ final', finalClass);
+        mlResult.maintenance_class = finalClass;
+        mlResult.override_reasons   = overrideReasons;
+        // Make probabilities reflect the override (100% on the floored class)
+        mlResult.maintenance_class_probabilities = {
+            failed: finalClass === 'failed' ? 1 : 0,
+            critical: finalClass === 'critical' ? 1 : 0,
+            warning: finalClass === 'warning' ? 1 : 0,
+            healthy: finalClass === 'healthy' ? 1 : 0,
+        };
+    }
 
     // ── Display all results ────────────────────────────────────────────────────
     const derived = mlResult.derived_features || {};
@@ -793,13 +900,14 @@ function displayHealth(ml, ur, rSS, rTS){
   });
 
   const sfp=rSS*100, tfp=rTS*100, udp=(1-ur)*100;
-  document.getElementById('sfb').style.width=Math.min(sfp,100)+'%';
+  const udpClamped = Math.max(0, Math.min(100, udp));
+  document.getElementById('sfb').style.width=Math.max(0,Math.min(sfp,100))+'%';
   document.getElementById('sfb').style.background=barC(sfp);
   document.getElementById('sfp').textContent=sfp.toFixed(1)+'%';
-  document.getElementById('tfb').style.width=Math.min(tfp,100)+'%';
+  document.getElementById('tfb').style.width=Math.max(0,Math.min(tfp,100))+'%';
   document.getElementById('tfb').style.background=barC(tfp);
   document.getElementById('tfp').textContent=tfp.toFixed(1)+'%';
-  document.getElementById('udb').style.width=Math.min(udp,100)+'%';
+  document.getElementById('udb').style.width=udpClamped+'%';
   document.getElementById('udb').style.background=udp>25?'#ff3d3d':udp>15?'#ffb800':'#00ff9d';
   document.getElementById('udp').textContent=udp.toFixed(1)+'%';
 }
@@ -913,7 +1021,7 @@ function displayDiagnostic({shell_dev, tube_dev, duty_loss_pct, U_ratio, dp_rati
   else if(tube_dev < -1)
     msgs.push({cls:'diag-warning', text:`Tube outlet ${Math.abs(tube_dev).toFixed(1)}°C below design — early tube side fouling detected.`});
 
-  if(duty_loss_pct > 15)
+  if(duty_loss_pct > 20)
     msgs.push({cls:'diag-danger', text:`Heat duty ${duty_loss_pct.toFixed(1)}% below design — exchanger cannot meet process requirement.`});
   else if(duty_loss_pct > 5)
     msgs.push({cls:'diag-warning', text:`Heat duty ${duty_loss_pct.toFixed(1)}% below design — performance degrading.`});
