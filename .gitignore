@@ -1,9 +1,12 @@
 venv/
 __pycache__/
 *.pyc
-generated/
 *.pkl
-master_dataset.csv
+generated/
 results/
 base_files/
+master_dataset.csv
+master/
+batch_log.txt
+sim_batch_log.txt
 .claude/
