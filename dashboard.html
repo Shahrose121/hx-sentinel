@@ -175,7 +175,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="f"><label>Tube inlet design (°C)</label><input type="number" id="db_tube_in" value="5" step="0.1" oninput="saveDB()"><div class="un">cold side in</div></div>
       <div class="f"><label>Shell flow design (kg/h)</label><input type="number" id="db_shell_flow" value="198" step="1" oninput="saveDB()"><div class="un">design mass flow</div></div>
 
-      <div class="f"><label>Tube flow design (SCMH)</label><input type="number" id="db_tube_flow_scmh" value="1249" step="1" oninput="saveDB()"><div class="un">design gas flow</div></div>
+      <div class="f"><label>Tube flow design (SCMH)</label><input type="number" id="db_tube_flow_scmh" value="" step="1" oninput="saveDB()" placeholder="from job"><div class="un">design gas flow (auto-loaded)</div></div>
       <div class="f"><label>Std gas density (kg/m³)</label><input type="number" id="db_std_density" value="0.72838" step="0.00001" oninput="saveDB()"><div class="un">standard conditions</div></div>
       <div class="f"><label>Duty design (kW)</label><input type="number" id="db_duty_design" value="4.5" step="0.1" oninput="saveDB()"><div class="un">design heat duty</div></div>
       <div class="f"><label>U clean (W/m²K)</label><input type="number" id="db_u_clean" value="291.9" step="1" oninput="saveDB()"><div class="un">HeatTranRatClean (ML feature)</div></div>
@@ -458,14 +458,19 @@ function selectJob(id){
     db_shell_out_design:'shell_out_design',
     db_tube_out_design: 'tube_out_design',
   };
+  const assigned = {};
   Object.entries(MAP).forEach(([elId, key]) => {
     const el = document.getElementById(elId);
-    if(el && currentJob[key] != null) el.value = currentJob[key];
+    if(el && currentJob[key] != null){
+      el.value = currentJob[key];
+      assigned[elId] = currentJob[key];
+    }
   });
   // Glycol pct is a <select>
   const gp = document.getElementById('db_glycol_pct');
   if(gp) gp.value = currentJob.glycol_pct || 40;
 
+  console.log(`[HX] selectJob(${id}) -> assigned design basis:`, assigned);
   saveDB();
 }
 
