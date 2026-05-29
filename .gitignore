@@ -1,7 +1,8 @@
 venv/
 __pycache__/
 *.pyc
-*.pkl
+# *.pkl now tracked via Git LFS (see .gitattributes) — keep this comment to
+# remind future-us that the global pkl exclusion was lifted intentionally.
 generated/
 results/
 base_files/
