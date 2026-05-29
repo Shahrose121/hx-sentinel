@@ -444,6 +444,7 @@ function selectJob(id){
     db_shell_in:        'shell_in',
     db_tube_in:         'tube_in',
     db_shell_flow:      'shell_flow',
+    db_tube_flow_scmh:  'tube_flow_design_scmh',
     db_std_density:     'std_density',
     db_duty_design:     'duty_design',
     db_u_clean:         'u_clean',
@@ -471,7 +472,7 @@ function selectJob(id){
 // ── Design Basis localStorage ─────────────────────────────────────────────────
 const DB_KEY = 'hxs_db';
 const DB_IDS = [
-  'db_job','db_shell_in','db_tube_in','db_shell_flow','db_std_density',
+  'db_job','db_shell_in','db_tube_in','db_shell_flow','db_tube_flow_scmh','db_std_density',
   'db_duty_design','db_u_clean','db_u_service_clean','db_area','db_f_factor','db_glycol_pct',
   'db_tube_pres_in','db_tube_pres_out','db_dp_allow_ss','db_dp_allow_ts',
   'db_shell_out_design','db_tube_out_design'
