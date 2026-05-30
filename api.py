@@ -370,7 +370,7 @@ def _mass_flow_kgh(data: dict, prefix: str):
     scmh_key = f"{prefix}_flow_scmh"
     if scmh_key in data:
         scmh = float(data[scmh_key])
-        rho_std = float(_pick(data, f"std_density_{prefix}", "std_density", required=True))
+        rho_std = float(_pick(data, f"std_density_{prefix}", "std_density", default=0.72838))
         return scmh * rho_std, {
             "method":       "scmh_x_std_density",
             "flow_scmh":    scmh,
@@ -404,8 +404,8 @@ def _calc_side(data: dict, prefix: str) -> dict:
     glycol_pct  = data.get("glycol_pct")
     glycol_type = data.get("glycol_type", "ethylene")
 
-    T_in  = float(_pick(data, f"temp_{prefix}_in",  f"temp_in_{prefix}",  required=True))
-    T_out = float(_pick(data, f"temp_{prefix}_out", f"temp_out_{prefix}", required=True))
+    T_in  = float(_pick(data, f"temp_{prefix}_in",  f"temp_in_{prefix}",  default=20.0))
+    T_out = float(_pick(data, f"temp_{prefix}_out", f"temp_out_{prefix}", default=20.0))
 
     # Pressure: new names (pressure_{prefix}_in / _out) are barg per P&L spec.
     # Legacy names (pressure_in_{prefix}_bar etc.) use pressure_units (default bar_abs).
@@ -413,8 +413,8 @@ def _calc_side(data: dict, prefix: str) -> dict:
     new_p_out_key = f"pressure_{prefix}_out"
     if new_p_in_key in data or new_p_out_key in data:
         pressure_units = data.get(f"pressure_units_{prefix}", data.get("pressure_units", "barg"))
-        P_in_input  = float(_pick(data, new_p_in_key,  required=True))
-        P_out_input = float(_pick(data, new_p_out_key, required=True))
+        P_in_input  = float(_pick(data, new_p_in_key,  default=0.0))
+        P_out_input = float(_pick(data, new_p_out_key, default=0.0))
     else:
         pressure_units = data.get(f"pressure_units_{prefix}", data.get("pressure_units", "bar_abs"))
         P_default = float(data.get(f"pressure_{prefix}_bar", 1.01325))
@@ -591,7 +591,7 @@ def calculate_duty():
         return jsonify({"error": f"Tube side: {e}"}), 422
 
     if not result:
-        return jsonify({"error": "Provide at least fluid_shell or fluid_tube"}), 422
+        return jsonify({"note": "No fluid specified; provide fluid_shell or fluid_tube"}), 200
 
     # ── U_actual = |Q| / (A × LMTD × F) ───────────────────────────────────────
     if "area_m2" in data and "lmtd" in data:
