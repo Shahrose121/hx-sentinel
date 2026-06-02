@@ -1783,6 +1783,8 @@
     },
     {
         "job_id": "8471",
+        "data_quality": "bad_flow_source",
+        "data_quality_note": "EDR design flow input incorrect (~3580x too low). Needs EDR re-run before use.",
         "shell_in": 55.0,
         "shell_out_design": 35.0,
         "tube_in": 5.0,

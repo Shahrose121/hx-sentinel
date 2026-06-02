@@ -142,6 +142,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
 <body>
 <div class="scan"></div>
 
+<!-- Data-quality warning banner (shown only for flagged jobs) -->
+<div id="dq-banner" style="display:none;background:rgba(255,184,0,0.12);border-bottom:1px solid #ffb800;color:#ffb800;padding:10px 18px;font-family:'Barlow Condensed','Barlow',sans-serif;font-size:14px;letter-spacing:.4px;text-align:center"></div>
+
 <!-- ── Header ──────────────────────────────────────────────────────────────── -->
 <div class="hdr">
   <div class="hdr-l">
@@ -434,10 +437,24 @@ async function fetchJobDB(){
 }
 
 // ── Populate Design Basis from selected job ───────────────────────────────────
+function updateDataQualityBanner(job){
+  const b = document.getElementById('dq-banner');
+  if(!b) return;
+  if(job && job.data_quality === 'bad_flow_source'){
+    b.textContent = '⚠ This exchanger’s design data needs re-validation. '
+      + 'Results may be unreliable until the EDR file is re-run.';
+    b.style.display = '';
+  } else {
+    b.style.display = 'none';
+    b.textContent = '';
+  }
+}
+
 function selectJob(id){
-  if(!id){ currentJob = null; return; }
+  if(!id){ currentJob = null; updateDataQualityBanner(null); return; }
   currentJob = JOB_DB.find(j => j.job_id === id);
-  if(!currentJob) return;
+  if(!currentJob){ updateDataQualityBanner(null); return; }
+  updateDataQualityBanner(currentJob);
 
   const MAP = {
     db_job:             'job_id',
@@ -632,6 +649,21 @@ async function runAnalysis(){
     const tubePresInA    = gSR('sr_tube_pres_in');
     const tubePresOutA   = gSR('sr_tube_pres_out');
 
+    // ── PART 3 FIX 4: validate pressures BEFORE any calculation ───────────────
+    // Outlet pressure must be below inlet pressure on both sides. An inverted
+    // pressure makes the enthalpy/duty math meaningless, so stop and show red.
+    if (tubePresOutA >= tubePresInA || shellPresOutA >= shellPresInA) {
+      throw new Error('Outlet pressure must be below inlet pressure');
+    }
+
+    // ── PART 3 FIX B: thermodynamic plausibility guard ────────────────────────
+    // Gas (tube) cannot leave hotter than the heating medium (shell) inlet, and
+    // glycol (shell) cannot leave colder than the gas inlet. Either means the
+    // readings are impossible — stop before the enthalpy math produces a bogus Q.
+    if (tubeOutA > shellInA || shellOutA < tubeInA) {
+      throw new Error('Impossible temperatures: outlet exceeds physical limit');
+    }
+
     // FIX 2: ΔP is computed from inlet/outlet pressures (no more manual fields)
     const dpSS = Math.max(0, shellPresInA - shellPresOutA);
     const dpTS = Math.max(0, tubePresInA  - tubePresOutA);
@@ -661,10 +693,38 @@ async function runAnalysis(){
     // ── STEP 3: Duty + LMTD + U actual ────────────────────────────────────────
     setStep('Step 3/4 · Duty · LMTD · U actual…');
 
-    // Single duty - tube-side enthalpy method matching the manual reference.
     const tubeMassFlow_kgh = tubeFlowSCMH * stdDens;
     const tubeMassFlow_kgs = tubeMassFlow_kgh / 3600;
-    const Q_kW = (h_out - h_in) * tubeMassFlow_kgh / 3600;       // kJ/kg -> kW
+
+    // ── Duty: enthalpy method (validated) stays primary. ──────────────────────
+    // Q_enthalpy counts ALL energy incl. pressure work, so a large tube ΔP
+    // inflates it. Q_thermal isolates heat transfer (m·Cp·ΔT, Cp at MEAN tube
+    // T & P) so duty tracks temperature change, not pressure drop. The enthalpy
+    // formula itself is UNTOUCHED — we only switch which one is reported.
+    const Q_enthalpy = (h_out - h_in) * tubeMassFlow_kgh / 3600;   // kJ/kg -> kW
+
+    const tubeMeanT = (tubeInA + tubeOutA) / 2;
+    const tubeMeanP = (tubePresInA + tubePresOutA) / 2;
+    const fpMean = await apiPost('/fluid_props',{
+      fluid:'mean_bacton_gas', temp_c:tubeMeanT,
+      pressure_bar:tubeMeanP, pressure_units:'barg', prefer_refprop:true
+    });
+    const cpMean    = fpMean.cp_kj_kgk;
+    const Q_thermal = tubeMassFlow_kgs * cpMean * (tubeOutA - tubeInA);  // kW
+
+    // Selection by ACTUAL physical pressure drop — NOT the paper allowable.
+    // The allowable ΔP is a limit only and must never feed duty. We switch to
+    // thermal duty only when the MEASURED tube ΔP is abnormally large: > 5× the
+    // design ΔP (dp_ts_design from the job), a genuine hydraulic anomaly.
+    const tubeDpDesign = (currentJob && currentJob.dp_ts_design > 0) ? currentJob.dp_ts_design : 0;
+    let dpDutyNote = '';
+    let Q_kW;
+    if (tubeDpDesign > 0 && dpTS > tubeDpDesign * 5) {
+      Q_kW = Q_thermal;
+      dpDutyNote = 'Large ΔP — thermal duty shown (pressure energy excluded)';
+    } else {
+      Q_kW = Q_enthalpy;
+    }
 
     // ── FIX 3: tube velocity + RhoV² (no more manual fields) ─────────────────
     // density: REFPROP-direct at mean tube conditions (average of inlet/outlet).
@@ -827,6 +887,27 @@ async function runAnalysis(){
         finalClass = escalated;
     }
 
+    // ── PART 3 FIX A: physics-relax rule ──────────────────────────────────────
+    // Physics is ground truth at the clean point. If duty, U and both ΔP ratios
+    // all say clean, a harsh ML verdict (e.g. jobs 8337 / 8364-B reading
+    // failed/critical at design) is overruled to HEALTHY. This is the ONLY rule
+    // that relaxes — and only when every physical indicator is clearly clean.
+    if (duty_loss_pct < 5 && U_ratio >= 0.95 && dp_ratio_TS < 0.8 && dp_ratio_SS < 0.8) {
+        if (finalClass !== 'healthy')
+            overrideReasons.push(`physics clean (duty loss ${duty_loss_pct.toFixed(1)}%, U ratio ${U_ratio.toFixed(2)}, ΔP < 80%) → HEALTHY`);
+        finalClass = 'healthy';
+    } else if (duty_loss_pct < 5 && U_ratio >= 0.95 &&
+               Math.max(dp_ratio_TS, dp_ratio_SS) >= 0.8 &&
+               Math.max(dp_ratio_TS, dp_ratio_SS) <= 1.0) {
+        // Thermally clean but ΔP genuinely near the allowable limit: a too-harsh
+        // ML verdict (FAILED/CRITICAL) is capped DOWN to WARNING — but never below,
+        // because the high ΔP is real. Does not escalate a healthy verdict.
+        const capped = SEV[finalClass] > SEV['warning'] ? 'warning' : finalClass;
+        if (capped !== finalClass)
+            overrideReasons.push(`physics clean but ΔP near limit (${(Math.max(dp_ratio_TS, dp_ratio_SS)*100).toFixed(0)}% of allowable) → capped at WARNING`);
+        finalClass = capped;
+    }
+
     if (overrideReasons.length) {
         console.log('[HX] safety overrides applied:', overrideReasons,
                     'ML said', mlResult.maintenance_class, '→ final', finalClass);
@@ -847,7 +928,18 @@ async function runAnalysis(){
     const rSSF = derived.DP_shell_ratio != null ? derived.DP_shell_ratio : dp_ratio_SS;
     const rTSF = derived.DP_tube_ratio  != null ? derived.DP_tube_ratio  : dp_ratio_TS;
 
-    displayHealth(mlResult, urF, rSSF, rTSF);
+    // ── PART 3 FIX 2: health-side U_ratio can never exceed 1.0 (nothing is
+    // "better than clean"). If calculated duty exceeds design by >15% the
+    // inputs are suspect (e.g. an over-large ΔP inflating enthalpy) — clamp to
+    // 1.0 and warn, so a choked exchanger can never read as healthy.
+    let urHealth = Math.min(urF, 1.0);
+    let dutyNote = dpDutyNote;
+    if (Q_kW > dutyDesign * 1.15) {
+      urHealth = 1.0;
+      dutyNote = (dutyNote ? dutyNote + ' · ' : '') + 'Calculated duty exceeds design — check pressures';
+    }
+
+    displayHealth(mlResult, urHealth, rSSF, rTSF, dutyNote);
     displayTEMA(tubeVel, rv2, rSSF, rTSF, dpSS, urF, fouling_index, mlResult.maintenance_class);
     displayThermal({
       Q_kW, U_actual, U_ratio, dutyDesign, duty_loss_pct,
@@ -871,11 +963,19 @@ async function runAnalysis(){
 }
 
 // ── Display: Health panel ─────────────────────────────────────────────────────
-function displayHealth(ml, ur, rSS, rTS){
+function displayHealth(ml, ur, rSS, rTS, dutyNote){
   const cls   = ml.maintenance_class;
   const ar    = ml.area_ratio;
   const probs = ml.maintenance_class_probabilities || {};
-  const score = Math.round(Math.max(0,Math.min(100,ur*100)));
+
+  // ── PART 3 FIX 1: SINGLE SOURCE OF TRUTH ──────────────────────────────────
+  // Ring score, ring colour and status text ALL derive from finalClass. The
+  // ring can never disagree with the text. Each class owns a score band; the
+  // (clamped) U_ratio only positions the number WITHIN its band.
+  const BAND = { healthy:[85,100], warning:[60,84], critical:[35,59], failed:[0,34] };
+  const [lo,hi] = BAND[cls] || BAND.healthy;
+  const frac = Math.max(0, Math.min(1, ur));           // ur already capped at 1.0
+  const score = Math.round(Math.max(lo, Math.min(hi, lo + (hi-lo)*frac)));
   const c     = gCol(cls);
 
   const circ = 326.73;
@@ -893,7 +993,7 @@ function displayHealth(ml, ur, rSS, rTS){
     failed:  'IMMEDIATE ACTION — exchanger cannot meet design duty'
   };
   const ab  = document.getElementById('ab');
-  ab.textContent = actions[cls] || actions.healthy;
+  ab.textContent = (actions[cls] || actions.healthy) + (dutyNote ? ' · ' + dutyNote : '');
   ab.style.borderColor = c; ab.style.color = c;
   const rgb = cls==='healthy'?'0,255,157':cls==='warning'?'255,184,0':cls==='critical'?'255,102,0':'255,61,61';
   ab.style.background = `rgba(${rgb},0.05)`;

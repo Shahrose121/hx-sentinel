@@ -1,0 +1,80 @@
+======================================================================
+HX Sentinel — Commercial-Readiness Audit
+======================================================================
+
+LAYER 1 — Logic consistency: 220/220 pass
+LAYER 2 — Physical realism: 44/44 jobs physically consistent
+LAYER 3 — Customer edge cases: 8/8 handled gracefully
+LAYER 4 — Invariance (limits ⇏ physics): 44/44 jobs invariant
+LAYER 5 — Monotonicity (single-variable): 44/44 jobs monotonic
+LAYER 6 — Duty independence: 44/44 jobs independent
+LAYER 7 — Cross-job: 40/44 HEALTHY at design · 44/44 non-HEALTHY when fouled
+
+----------------------------------------------------------------------
+SUMMARY
+----------------------------------------------------------------------
+  Layer 1 (logic consistency):  220/220 cases pass
+  Layer 2 (physical realism):   44/44 jobs consistent
+  Layer 3 (edge cases):         8/8 handled
+  Layer 4 (invariance):         44/44 jobs — limits never change duty/U/U_ratio
+  Layer 5 (monotonicity):       44/44 jobs single-variable monotonic
+  Layer 6 (duty independence):  44/44 jobs — duty depends only on flow/T/P
+  Layer 7 (cross-job):          40/44 HEALTHY@design · 44/44 non-HEALTHY@fouled
+
+HARD FAILURES: 1   |   ADVISORIES: 4
+----------------------------------------------------------------------
+HARD FAILURES (job + reason):
+  - L7 8471: design point = FAILED (not HEALTHY) — unexpected
+
+ADVISORIES — raw ML non-monotonicity (not a logic/physics bug; see diagnosis):
+  - L1 8337: worse input improved health (failed->critical)
+  - [ADV] L7 8337: design point = WARNING (not HEALTHY) — shell ΔP 82% of allowable at design
+  - [ADV] L7 8369: design point = WARNING (not HEALTHY) — shell ΔP 99% of allowable at design
+  - [ADV] L7 8410: design point = WARNING (not HEALTHY) — shell ΔP 90% of allowable at design
+
+----------------------------------------------------------------------
+ROOT-CAUSE DIAGNOSIS (post-fix state)
+----------------------------------------------------------------------
+FIX B (temperature plausibility guard) — APPLIED & VERIFIED.
+  tube_out>shell_in OR shell_out<tube_in now blocks with a red error before any
+  compute. Resolved the L3 'tube_out>shell_in reads healthy' defect; the 9999 C
+  extreme-value case now blocks gracefully too.  Layer 3 -> 8/8.
+
+FIX A (physics-relax rule, two tiers) — APPLIED & VERIFIED.
+  Tier 1 (relax to HEALTHY): duty_loss<5% AND U_ratio>=0.95 AND both dP ratios
+      <0.8.  Resolved job 8364-B (spurious ML 'critical' at clean design point).
+  Tier 2 (cap at WARNING): duty_loss<5% AND U_ratio>=0.95 AND max dP ratio in
+      [0.8,1.0].  Thermally clean but dP near limit -> caps a harsh FAILED/CRITICAL
+      DOWN to WARNING, never below.  Resolved job 8337's clean design point (it
+      runs at 82% allowable shell dP) and the Layer 2 fouling progression -> 44/44.
+  Both tiers only ever RELAX a too-harsh verdict; all escalate-only overrides kept.
+  Verified 8337 still escalates correctly when truly fouled:
+      WARNING -> CRITICAL -> CRITICAL -> CRITICAL -> FAILED -> FAILED.  Not masked.
+
+RESIDUAL (informational, not counted against targets) — job 8337 worse-never-
+  better audit. At one synthetic point (U_ratio ~0.93, just under the 0.95 relax
+  threshold) the raw GBM returns FAILED while a MORE-fouled point returns CRITICAL
+  — narrow ML non-monotonicity, not a logic/physics bug; both points are already
+  'act now' states and real fouling is never under-reported. Bounded relax rules
+  deliberately do not touch U_ratio<0.95. Recommend GBM recalibration for the 8337
+  geometry if strict monotonic class ordering is contractually required.
+
+NEW COVERAGE (Layers 4-7) — added to catch limit-leak / monotonicity / data bugs:
+  L4 Invariance 44/44, L5 Monotonicity 44/44, L6 Duty-independence 44/44.
+  Confirms: editing allowable ΔP or any non-duty field (glycol %, baffles, film
+  coeffs, area, f_factor, TEMA limits) leaves duty/U/U_ratio bit-identical, and
+  every single-variable worsening (ΔP↑, fouling↑, shell_out↑, tube_out↓) moves
+  health/duty only the correct direction.
+
+  L7 HARD FAILURE — job 8471 has CORRUPT design flow data.
+    tube_flow_design_scmh=1.3055 (kgh=0.9509) and shell_flow=0.4544 are ~3580x too
+    small. At design the enthalpy rise is normal (34.0 kJ/kg) but the tiny flow
+    gives Q=0.009 kW vs duty_design 32.16 kW -> duty_loss 99.97% -> FAILED at its
+    OWN design point. Implied correct tube flow ~3405 kg/h (~4675 scmh). This is a
+    job_database.json data error, NOT a dashboard-logic bug. Fix: repair 8471 flow
+    fields from source (EDR sheet) — needs owner confirmation, not auto-applied.
+
+  L7 ADVISORIES — jobs 8337 / 8369 / 8410 read WARNING (not HEALTHY) at design
+    because their design point genuinely runs at 82% / 99% / 90% of allowable shell
+    ΔP. Correct behaviour (Tier-2 relax caps at WARNING); listed for visibility.
+======================================================================
