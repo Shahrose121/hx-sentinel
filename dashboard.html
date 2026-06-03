@@ -245,7 +245,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="out-cell"><div class="out-label">Shell &#916;P (bar)</div><div class="out-val" id="out_dp_ss">--</div></div>
       <div class="out-cell"><div class="out-label">Tube &#916;P (bar)</div><div class="out-val" id="out_dp_ts">--</div></div>
       <div class="out-cell"><div class="out-label">Tube vel (m/s)</div><div class="out-val" id="out_tube_vel">--</div></div>
-      <div class="out-cell"><div class="out-label">Rho&#xB7;V&#xB2;</div><div class="out-val" id="out_rv2">--</div></div>
+      <div class="out-cell"><div class="out-label">Tube Rho&#xB7;V&#xB2; (no TEMA limit)</div><div class="out-val" id="out_rv2">--</div></div>
     </div>
 
     <div class="psub">Calculated outputs</div>
@@ -309,8 +309,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="tname">Tube velocity</div>
       <div class="tright"><span class="tval" id="tv-v">-- m/s</span><span class="tlim">max 40 m/s</span><div class="tdot" id="tv-d" style="background:#3a5570"></div></div>
     </div>
-    <div class="trow" id="tr-rv">
-      <div class="tname">Nozzle Rho·V²</div>
+    <div class="trow" id="tr-rv" title="TEMA RGP-RCB-4.6 shell inlet nozzle criterion. Limit 2232 kg/m·s² (non-abrasive single phase). Design value.">
+      <div>
+        <div class="tname">Nozzle Rho·V²</div>
+        <div class="tlim" style="margin-top:2px">TEMA RGP-RCB-4.6 shell inlet · design value</div>
+      </div>
       <div class="tright"><span class="tval" id="rv-v">--</span><span class="tlim">max 2232</span><div class="tdot" id="rv-d" style="background:#3a5570"></div></div>
     </div>
     <div class="trow" id="tr-ds">
@@ -745,7 +748,15 @@ async function runAnalysis(){
     const tubeVel        = (tube_density > 0 && tube_flow_area > 0)
         ? tubeMassFlow_kgs / (tube_density * tube_flow_area)
         : 0;
-    const rv2            = tube_density * tubeVel * tubeVel;
+    const rv2            = tube_density * tubeVel * tubeVel;   // TUBE-side, informational only
+
+    // ── Shell NOZZLE RhoV² for the TEMA 2232 check ───────────────────────────
+    // TEMA's 2232 kg/m·s² RhoV² limit governs the SHELL NOZZLE only
+    // (impingement / flow-induced vibration). The tube-bundle rv2 above is NOT
+    // subject to it. Use the precomputed shell-nozzle design RhoV² from the job
+    // (rv2_nozzle_design — matches AspenEDR exactly, e.g. 4025 for 8523).
+    const nozRhoV2 = (currentJob && currentJob.rv2_nozzle_design != null)
+        ? parseFloat(currentJob.rv2_nozzle_design) : 0;
 
     const dT1 = shellInA  - tubeOutA;
     const dT2 = shellOutA - tubeInA;
@@ -951,7 +962,7 @@ async function runAnalysis(){
     }
 
     displayHealth(mlResult, urHealth, rSSF, rTSF, dutyNote);
-    displayTEMA(tubeVel, rv2, rSSF, rTSF, dpSS, urF, fouling_index, mlResult.maintenance_class);
+    displayTEMA(tubeVel, nozRhoV2, rv2, rSSF, rTSF, dpSS, urF, fouling_index, mlResult.maintenance_class);
     displayThermal({
       Q_kW, U_actual, U_ratio, dutyDesign, duty_loss_pct,
       shell_dev, tube_dev, shellOutA, tubeOutA, shellOutD, tubeOutD, capacity
@@ -1030,12 +1041,14 @@ function displayHealth(ml, ur, rSS, rTS, dutyNote){
 }
 
 // ── Display: TEMA + Performance ───────────────────────────────────────────────
-function displayTEMA(tv, rv2, rSS, rTS, dpSS, ur, fi, cls){
+function displayTEMA(tv, nozRv2, tubeRv2, rSS, rTS, dpSS, ur, fi, cls){
   const c = gCol(cls);
   document.getElementById('tv-v').textContent=tv.toFixed(1)+' m/s';
   setDot('tv-d','tr-tv',tv>40?'danger':tv>32?'warning':'ok');
-  document.getElementById('rv-v').textContent=Math.round(rv2)+' kg/m·s²';
-  setDot('rv-d','tr-rv',rv2>2232?'danger':rv2>1786?'warning':'ok');
+  // "Nozzle Rho·V²" row = SHELL nozzle value vs TEMA 2232 (the limit's true scope).
+  // tubeRv2 stays informational (shown in the Hydraulics strip), no TEMA limit.
+  document.getElementById('rv-v').textContent=Math.round(nozRv2)+' kg/m·s²';
+  setDot('rv-d','tr-rv',nozRv2>2232?'danger':nozRv2>1786?'warning':'ok');
   document.getElementById('ds-v').textContent=(rSS*100).toFixed(1)+'%';
   setDot('ds-d','tr-ds',rSS>1?'danger':rSS>0.8?'warning':'ok');
   document.getElementById('dt-v').textContent=(rTS*100).toFixed(1)+'%';
