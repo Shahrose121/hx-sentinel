@@ -475,12 +475,21 @@ function selectJob(id){
     db_shell_out_design:'shell_out_design',
     db_tube_out_design: 'tube_out_design',
   };
+  // Design pressures are stored bara but the boxes are labelled "(barg)" to
+  // match the Site Readings inputs and what operators read on gauges. Convert
+  // for DISPLAY only (bara - 1 atm); the stored bara source (currentJob) is
+  // untouched. After this, gDB('db_tube_pres_*') returns barg.
+  const BARA_TO_BARG = ['db_tube_pres_in', 'db_tube_pres_out'];
+  const ATM_BAR = 1.01325;
   const assigned = {};
   Object.entries(MAP).forEach(([elId, key]) => {
     const el = document.getElementById(elId);
     if(el && currentJob[key] != null){
-      el.value = currentJob[key];
-      assigned[elId] = currentJob[key];
+      const val = BARA_TO_BARG.includes(elId)
+        ? (parseFloat(currentJob[key]) - ATM_BAR)
+        : currentJob[key];
+      el.value = val;
+      assigned[elId] = val;
     }
   });
   // Glycol pct is a <select>
@@ -630,8 +639,7 @@ async function runAnalysis(){
     const area          = gDB('db_area');              // 0.570
     const fFactor       = gDB('db_f_factor');          // 0.985
     const glycolPct   = parseInt(gDBStr('db_glycol_pct'))||40;
-    const tubePresInD  = gDB('db_tube_pres_in');    // design tube inlet pressure
-    const tubePresOutD = gDB('db_tube_pres_out');   // design tube outlet pressure
+    const tubePresInD  = gDB('db_tube_pres_in');    // design tube inlet pressure (barg — converted for display at populate)
     const dpAlloSS    = gDB('db_dp_allow_ss');      // 0.2
     const dpAlloTS    = gDB('db_dp_allow_ts');      // 0.5
     const shellOutD   = gDB('db_shell_out_design'); // 35
@@ -828,6 +836,9 @@ async function runAnalysis(){
       FlRaTotalSS:       shellFlowA || shellFlowD,
       FlRaTotalTS:       tubeMassFlow_kgh || geo.tube_flow_kgh || (tubeFlowDesignSCMH * stdDens),
       PresOperInSS:      shellPresInA,
+      // Both barg: tubePresInA is a barg site reading; tubePresInD is the design
+      // pressure already converted bara->barg at populate. Units are consistent —
+      // do NOT subtract atm here (would double-convert the fallback value).
       PresOperInTS:      tubePresInA || tubePresInD,
       DP_shell_ratio:    dp_ratio_SS,
       DP_tube_ratio:     dp_ratio_TS,
