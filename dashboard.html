@@ -418,7 +418,10 @@ let currentJob = null; // full record for selected job
 // ── Job database loader ───────────────────────────────────────────────────────
 async function fetchJobDB(){
   try{
-    const r = await fetch('job_database.json');
+    // Cache-buster: always fetch the current job_database.json. Without this a
+    // browser may serve a stale cached copy (e.g. missing newly-added fields
+    // like shell_nozzle_id_mm), silently forcing fallback code paths.
+    const r = await fetch('job_database.json?v=' + Date.now());
     JOB_DB = await r.json();
     const sel = document.getElementById('job-selector');
     JOB_DB.forEach(job => {
