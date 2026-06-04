@@ -245,7 +245,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="out-cell"><div class="out-label">Shell &#916;P (bar)</div><div class="out-val" id="out_dp_ss">--</div></div>
       <div class="out-cell"><div class="out-label">Tube &#916;P (bar)</div><div class="out-val" id="out_dp_ts">--</div></div>
       <div class="out-cell"><div class="out-label">Tube vel (m/s)</div><div class="out-val" id="out_tube_vel">--</div></div>
-      <div class="out-cell"><div class="out-label">Tube Rho&#xB7;V&#xB2; (no TEMA limit)</div><div class="out-val" id="out_rv2">--</div></div>
+      <div class="out-cell"><div class="out-label">Tube Rho&#xB7;V&#xB2; (gas, info only)</div><div class="out-val" id="out_rv2">--</div></div>
     </div>
 
     <div class="psub">Calculated outputs</div>
@@ -311,7 +311,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
     </div>
     <div class="trow" id="tr-rv" title="TEMA RGP-RCB-4.6 shell inlet nozzle criterion. Limit 2232 kg/m·s² (non-abrasive single phase). Computed live from actual shell flow & glycol density; reproduces the EDR design value at design flow.">
       <div>
-        <div class="tname">Nozzle Rho·V²</div>
+        <div class="tname">Shell Nozzle Rho·V²</div>
         <div class="tlim" style="margin-top:2px">TEMA RGP-RCB-4.6 shell inlet · live (tracks shell flow)</div>
       </div>
       <div class="tright"><span class="tval" id="rv-v">--</span><span class="tlim">max 2232</span><div class="tdot" id="rv-d" style="background:#3a5570"></div></div>
