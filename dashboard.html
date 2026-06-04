@@ -825,7 +825,10 @@ async function runAnalysis(){
       DPratioSS:         dp_ratio_SS,
       DPratioTS:         dp_ratio_TS,
       VelThruTubesMaxTS: tubeVel,
-      RV2InNoz:          rv2,
+      // Train/serve fix: the model learned RV2InNoz = shell-nozzle RhoV²
+      // (rv2_nozzle_design in master_dataset.csv), NOT the tube-bundle rv2.
+      // Serve the shell-nozzle value to match training.
+      RV2InNoz:          nozRhoV2,
       FoulResSS:         0.000352,
       FoulResTS:         0.000176,
       LMTD:              LMTD,
