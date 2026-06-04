@@ -309,10 +309,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
       <div class="tname">Tube velocity</div>
       <div class="tright"><span class="tval" id="tv-v">-- m/s</span><span class="tlim">max 40 m/s</span><div class="tdot" id="tv-d" style="background:#3a5570"></div></div>
     </div>
-    <div class="trow" id="tr-rv" title="TEMA RGP-RCB-4.6 shell inlet nozzle criterion. Limit 2232 kg/m·s² (non-abrasive single phase). Design value.">
+    <div class="trow" id="tr-rv" title="TEMA RGP-RCB-4.6 shell inlet nozzle criterion. Limit 2232 kg/m·s² (non-abrasive single phase). Computed live from actual shell flow & glycol density; reproduces the EDR design value at design flow.">
       <div>
         <div class="tname">Nozzle Rho·V²</div>
-        <div class="tlim" style="margin-top:2px">TEMA RGP-RCB-4.6 shell inlet · design value</div>
+        <div class="tlim" style="margin-top:2px">TEMA RGP-RCB-4.6 shell inlet · live (tracks shell flow)</div>
       </div>
       <div class="tright"><span class="tval" id="rv-v">--</span><span class="tlim">max 2232</span><div class="tdot" id="rv-d" style="background:#3a5570"></div></div>
     </div>
@@ -750,13 +750,36 @@ async function runAnalysis(){
         : 0;
     const rv2            = tube_density * tubeVel * tubeVel;   // TUBE-side, informational only
 
-    // ── Shell NOZZLE RhoV² for the TEMA 2232 check ───────────────────────────
-    // TEMA's 2232 kg/m·s² RhoV² limit governs the SHELL NOZZLE only
-    // (impingement / flow-induced vibration). The tube-bundle rv2 above is NOT
-    // subject to it. Use the precomputed shell-nozzle design RhoV² from the job
-    // (rv2_nozzle_design — matches AspenEDR exactly, e.g. 4025 for 8523).
-    const nozRhoV2 = (currentJob && currentJob.rv2_nozzle_design != null)
-        ? parseFloat(currentJob.rv2_nozzle_design) : 0;
+    // ── Shell NOZZLE RhoV² for the TEMA 2232 check (LIVE) ────────────────────
+    // TEMA's 2232 kg/m·s² RhoV² limit governs the SHELL inlet NOZZLE only
+    // (impingement / flow-induced vibration) — the tube-bundle rv2 above is NOT
+    // subject to it. Computed live from ACTUAL shell flow so the check tracks
+    // real operating conditions:
+    //   ρV² = ṁ_shell² / (ρ_shell · A_nozzle²),  A = (π/4)·(noz_id_mm/1000)²
+    // ρ_shell = glycol density at actual mean shell T & P. shell_nozzle_id_mm is
+    // derived per job (see derive_shell_nozzle_id.py) so this reproduces the EDR
+    // rv2_nozzle_design at design flow (e.g. 8523 → 4025). Falls back to the
+    // static EDR value when nozzle geometry is unavailable (e.g. zero-flow jobs).
+    const shellMeanT = (shellInA + shellOutA) / 2;
+    const shellMeanP = (shellPresInA + shellPresOutA) / 2;
+    const fpShell = await apiPost('/fluid_props', {
+      fluid:'glycol', temp_c:shellMeanT, pressure_bar:shellMeanP,
+      pressure_units:'barg', glycol_pct:glycolPct, glycol_type:'ethylene'
+    });
+    const shell_density   = fpShell.density_kg_m3;
+    const shell_noz_id_m  = (currentJob && currentJob.shell_nozzle_id_mm)
+        ? currentJob.shell_nozzle_id_mm / 1000 : 0;
+    const shell_noz_area  = (Math.PI / 4) * shell_noz_id_m * shell_noz_id_m;
+    const shellMassFlow_kgs = shellFlowA / 3600;
+    let nozRhoV2;
+    if (shell_noz_id_m > 0 && shell_density > 0 && shell_noz_area > 0) {
+      const vNoz = shellMassFlow_kgs / (shell_density * shell_noz_area);
+      nozRhoV2 = shell_density * vNoz * vNoz;
+    } else {
+      // No nozzle geometry — fall back to the static EDR design value.
+      nozRhoV2 = (currentJob && currentJob.rv2_nozzle_design != null)
+          ? parseFloat(currentJob.rv2_nozzle_design) : 0;
+    }
 
     const dT1 = shellInA  - tubeOutA;
     const dT2 = shellOutA - tubeInA;

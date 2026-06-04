@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "job_id": "8257",
         "shell_in": 55.0,
@@ -63,7 +63,8 @@
         "excess_surf_clean_pct": 39.7037,
         "tube_press_out_design_barg": 34.0732,
         "shell_press_out_design_barg": 3.981009,
-        "tube_flow_design_scmh": 21293.8288
+        "tube_flow_design_scmh": 21293.8288,
+        "shell_nozzle_id_mm": 42.8057
     },
     {
         "job_id": "8308",
@@ -129,7 +130,8 @@
         "excess_surf_clean_pct": 57.096,
         "tube_press_out_design_barg": 70.8929,
         "shell_press_out_design_barg": 3.931728,
-        "tube_flow_design_scmh": 90952.5111
+        "tube_flow_design_scmh": 90952.5111,
+        "shell_nozzle_id_mm": 97.0796
     },
     {
         "job_id": "8337",
@@ -195,7 +197,8 @@
         "excess_surf_clean_pct": -0.0176,
         "tube_press_out_design_barg": 75.9045,
         "shell_press_out_design_barg": 3.591037,
-        "tube_flow_design_scmh": 276855.5095
+        "tube_flow_design_scmh": 276855.5095,
+        "shell_nozzle_id_mm": 246.5589
     },
     {
         "job_id": "8359",
@@ -261,7 +264,8 @@
         "excess_surf_clean_pct": 30.684,
         "tube_press_out_design_barg": 70.8776,
         "shell_press_out_design_barg": 3.971051,
-        "tube_flow_design_scmh": 19501.825
+        "tube_flow_design_scmh": 19501.825,
+        "shell_nozzle_id_mm": 73.2384
     },
     {
         "job_id": "8363-A",
@@ -327,7 +331,8 @@
         "excess_surf_clean_pct": 24.2325,
         "tube_press_out_design_barg": 85.9926,
         "shell_press_out_design_barg": 3.934649,
-        "tube_flow_design_scmh": 44999.8627
+        "tube_flow_design_scmh": 44999.8627,
+        "shell_nozzle_id_mm": 146.2346
     },
     {
         "job_id": "8363B2",
@@ -393,7 +398,8 @@
         "excess_surf_clean_pct": 31.3661,
         "tube_press_out_design_barg": 28.8965,
         "shell_press_out_design_barg": 3.96683,
-        "tube_flow_design_scmh": 45000.0
+        "tube_flow_design_scmh": 45000.0,
+        "shell_nozzle_id_mm": 146.2346
     },
     {
         "job_id": "8363C2",
@@ -459,7 +465,8 @@
         "excess_surf_clean_pct": 25.2362,
         "tube_press_out_design_barg": 28.9299,
         "shell_press_out_design_barg": 3.978981,
-        "tube_flow_design_scmh": 4500.0
+        "tube_flow_design_scmh": 4500.0,
+        "shell_nozzle_id_mm": 42.8133
     },
     {
         "job_id": "8364-A",
@@ -525,7 +532,8 @@
         "excess_surf_clean_pct": 17.0921,
         "tube_press_out_design_barg": 21.8991,
         "shell_press_out_design_barg": 3.999955,
-        "tube_flow_design_scmh": 66.965
+        "tube_flow_design_scmh": 66.965,
+        "shell_nozzle_id_mm": null
     },
     {
         "job_id": "8364-B",
@@ -591,7 +599,8 @@
         "excess_surf_clean_pct": 0.0035,
         "tube_press_out_design_barg": 50.1976,
         "shell_press_out_design_barg": 3.99401,
-        "tube_flow_design_scmh": 449.7652
+        "tube_flow_design_scmh": 449.7652,
+        "shell_nozzle_id_mm": 11.7267
     },
     {
         "job_id": "8369",
@@ -657,7 +666,8 @@
         "excess_surf_clean_pct": 61.6276,
         "tube_press_out_design_barg": 70.8519,
         "shell_press_out_design_barg": 4.900662,
-        "tube_flow_design_scmh": 121436.6128
+        "tube_flow_design_scmh": 121436.6128,
+        "shell_nozzle_id_mm": 145.575
     },
     {
         "job_id": "8372",
@@ -723,7 +733,8 @@
         "excess_surf_clean_pct": 43.4686,
         "tube_press_out_design_barg": 70.8982,
         "shell_press_out_design_barg": 3.651896,
-        "tube_flow_design_scmh": 49008.4159
+        "tube_flow_design_scmh": 49008.4159,
+        "shell_nozzle_id_mm": 146.2083
     },
     {
         "job_id": "8395",
@@ -789,7 +800,8 @@
         "excess_surf_clean_pct": 59.5221,
         "tube_press_out_design_barg": 63.6515,
         "shell_press_out_design_barg": 3.921066,
-        "tube_flow_design_scmh": 149921.7222
+        "tube_flow_design_scmh": 149921.7222,
+        "shell_nozzle_id_mm": 97.0749
     },
     {
         "job_id": "8398",
@@ -855,7 +867,8 @@
         "excess_surf_clean_pct": 34.4051,
         "tube_press_out_design_barg": 59.9862,
         "shell_press_out_design_barg": 3.989813,
-        "tube_flow_design_scmh": 6574.8661
+        "tube_flow_design_scmh": 6574.8661,
+        "shell_nozzle_id_mm": 42.8057
     },
     {
         "job_id": "8401",
@@ -921,7 +934,8 @@
         "excess_surf_clean_pct": 31.1522,
         "tube_press_out_design_barg": 35.3903,
         "shell_press_out_design_barg": 3.487515,
-        "tube_flow_design_scmh": 12500.3446
+        "tube_flow_design_scmh": 12500.3446,
+        "shell_nozzle_id_mm": 42.8055
     },
     {
         "job_id": "8404",
@@ -987,7 +1001,8 @@
         "excess_surf_clean_pct": 46.522,
         "tube_press_out_design_barg": 38.9082,
         "shell_press_out_design_barg": 3.970982,
-        "tube_flow_design_scmh": 38160.0813
+        "tube_flow_design_scmh": 38160.0813,
+        "shell_nozzle_id_mm": 73.5839
     },
     {
         "job_id": "8407",
@@ -1053,7 +1068,8 @@
         "excess_surf_clean_pct": 19.2034,
         "tube_press_out_design_barg": 37.397,
         "shell_press_out_design_barg": 3.99987,
-        "tube_flow_design_scmh": 429.7757
+        "tube_flow_design_scmh": 429.7757,
+        "shell_nozzle_id_mm": 20.5815
     },
     {
         "job_id": "8409",
@@ -1119,7 +1135,8 @@
         "excess_surf_clean_pct": 26.195,
         "tube_press_out_design_barg": 38.1911,
         "shell_press_out_design_barg": 3.981949,
-        "tube_flow_design_scmh": 28360.1993
+        "tube_flow_design_scmh": 28360.1993,
+        "shell_nozzle_id_mm": 57.7922
     },
     {
         "job_id": "8410",
@@ -1185,7 +1202,8 @@
         "excess_surf_clean_pct": 46.1458,
         "tube_press_out_design_barg": 35.4083,
         "shell_press_out_design_barg": 3.819278,
-        "tube_flow_design_scmh": 82374.5984
+        "tube_flow_design_scmh": 82374.5984,
+        "shell_nozzle_id_mm": 192.1741
     },
     {
         "job_id": "8414",
@@ -1251,7 +1269,8 @@
         "excess_surf_clean_pct": 48.3384,
         "tube_press_out_design_barg": 36.8683,
         "shell_press_out_design_barg": 3.926498,
-        "tube_flow_design_scmh": 78459.0247
+        "tube_flow_design_scmh": 78459.0247,
+        "shell_nozzle_id_mm": 73.5803
     },
     {
         "job_id": "8421",
@@ -1317,7 +1336,8 @@
         "excess_surf_clean_pct": 47.8402,
         "tube_press_out_design_barg": 70.947,
         "shell_press_out_design_barg": 4.942199,
-        "tube_flow_design_scmh": 77029.8578
+        "tube_flow_design_scmh": 77029.8578,
+        "shell_nozzle_id_mm": 146.2033
     },
     {
         "job_id": "8422",
@@ -1383,7 +1403,8 @@
         "excess_surf_clean_pct": 29.4949,
         "tube_press_out_design_barg": 40.9663,
         "shell_press_out_design_barg": 3.991397,
-        "tube_flow_design_scmh": 7399.9822
+        "tube_flow_design_scmh": 7399.9822,
+        "shell_nozzle_id_mm": 42.8037
     },
     {
         "job_id": "8423",
@@ -1449,7 +1470,8 @@
         "excess_surf_clean_pct": 44.6735,
         "tube_press_out_design_barg": 26.9881,
         "shell_press_out_design_barg": 3.974072,
-        "tube_flow_design_scmh": 38000.0019
+        "tube_flow_design_scmh": 38000.0019,
+        "shell_nozzle_id_mm": 42.6047
     },
     {
         "job_id": "8426",
@@ -1515,7 +1537,8 @@
         "excess_surf_clean_pct": 44.7927,
         "tube_press_out_design_barg": 49.1084,
         "shell_press_out_design_barg": 3.935344,
-        "tube_flow_design_scmh": 77640.9978
+        "tube_flow_design_scmh": 77640.9978,
+        "shell_nozzle_id_mm": 97.0796
     },
     {
         "job_id": "8428",
@@ -1581,7 +1604,8 @@
         "excess_surf_clean_pct": 16.628,
         "tube_press_out_design_barg": 75.9664,
         "shell_press_out_design_barg": 3.982369,
-        "tube_flow_design_scmh": 18388.7559
+        "tube_flow_design_scmh": 18388.7559,
+        "shell_nozzle_id_mm": 73.279
     },
     {
         "job_id": "8433",
@@ -1647,7 +1671,8 @@
         "excess_surf_clean_pct": 18.5602,
         "tube_press_out_design_barg": 45.9966,
         "shell_press_out_design_barg": 3.997206,
-        "tube_flow_design_scmh": 1032.0002
+        "tube_flow_design_scmh": 1032.0002,
+        "shell_nozzle_id_mm": 20.6786
     },
     {
         "job_id": "8436",
@@ -1713,7 +1738,8 @@
         "excess_surf_clean_pct": 40.2817,
         "tube_press_out_design_barg": 49.9745,
         "shell_press_out_design_barg": 3.988528,
-        "tube_flow_design_scmh": 10774.5957
+        "tube_flow_design_scmh": 10774.5957,
+        "shell_nozzle_id_mm": 73.5803
     },
     {
         "job_id": "8459",
@@ -1779,7 +1805,8 @@
         "excess_surf_clean_pct": 30.9498,
         "tube_press_out_design_barg": 70.9855,
         "shell_press_out_design_barg": 3.977495,
-        "tube_flow_design_scmh": 10999.9973
+        "tube_flow_design_scmh": 10999.9973,
+        "shell_nozzle_id_mm": 73.279
     },
     {
         "job_id": "8471",
@@ -1847,7 +1874,8 @@
         "excess_surf_clean_pct": 41.9097,
         "tube_press_out_design_barg": 35.9605,
         "shell_press_out_design_barg": 3.981049,
-        "tube_flow_design_scmh": 1.3055
+        "tube_flow_design_scmh": 1.3055,
+        "shell_nozzle_id_mm": null
     },
     {
         "job_id": "8474",
@@ -1913,7 +1941,8 @@
         "excess_surf_clean_pct": 50.7676,
         "tube_press_out_design_barg": 32.2921,
         "shell_press_out_design_barg": 3.968827,
-        "tube_flow_design_scmh": 82228.1554
+        "tube_flow_design_scmh": 82228.1554,
+        "shell_nozzle_id_mm": 73.0307
     },
     {
         "job_id": "8482",
@@ -1979,7 +2008,8 @@
         "excess_surf_clean_pct": 55.729,
         "tube_press_out_design_barg": 36.9108,
         "shell_press_out_design_barg": 3.941584,
-        "tube_flow_design_scmh": 79999.9863
+        "tube_flow_design_scmh": 79999.9863,
+        "shell_nozzle_id_mm": 96.6238
     },
     {
         "job_id": "8485",
@@ -2045,7 +2075,8 @@
         "excess_surf_clean_pct": 54.4746,
         "tube_press_out_design_barg": 70.9173,
         "shell_press_out_design_barg": 3.846527,
-        "tube_flow_design_scmh": 310000.2965
+        "tube_flow_design_scmh": 310000.2965,
+        "shell_nozzle_id_mm": 193.5575
     },
     {
         "job_id": "8497",
@@ -2111,7 +2142,8 @@
         "excess_surf_clean_pct": 29.5461,
         "tube_press_out_design_barg": 25.0632,
         "shell_press_out_design_barg": 3.999388,
-        "tube_flow_design_scmh": 1249.9999
+        "tube_flow_design_scmh": 1249.9999,
+        "shell_nozzle_id_mm": 18.1455
     },
     {
         "job_id": "8499",
@@ -2177,7 +2209,8 @@
         "excess_surf_clean_pct": 54.0156,
         "tube_press_out_design_barg": 49.1125,
         "shell_press_out_design_barg": 3.971858,
-        "tube_flow_design_scmh": 17828.6046
+        "tube_flow_design_scmh": 17828.6046,
+        "shell_nozzle_id_mm": 74.0065
     },
     {
         "job_id": "8501",
@@ -2243,7 +2276,8 @@
         "excess_surf_clean_pct": 31.0341,
         "tube_press_out_design_barg": 25.0632,
         "shell_press_out_design_barg": 3.999549,
-        "tube_flow_design_scmh": 1249.9999
+        "tube_flow_design_scmh": 1249.9999,
+        "shell_nozzle_id_mm": 20.5815
     },
     {
         "job_id": "8505",
@@ -2309,7 +2343,8 @@
         "excess_surf_clean_pct": 49.974,
         "tube_press_out_design_barg": 34.0164,
         "shell_press_out_design_barg": 3.968835,
-        "tube_flow_design_scmh": 62600.008
+        "tube_flow_design_scmh": 62600.008,
+        "shell_nozzle_id_mm": 72.989
     },
     {
         "job_id": "8520",
@@ -2375,7 +2410,8 @@
         "excess_surf_clean_pct": 46.4862,
         "tube_press_out_design_barg": 23.4214,
         "shell_press_out_design_barg": 3.969727,
-        "tube_flow_design_scmh": 25000.0027
+        "tube_flow_design_scmh": 25000.0027,
+        "shell_nozzle_id_mm": 73.5839
     },
     {
         "job_id": "8521A",
@@ -2441,7 +2477,8 @@
         "excess_surf_clean_pct": 63.3564,
         "tube_press_out_design_barg": 69.9051,
         "shell_press_out_design_barg": 4.916582,
-        "tube_flow_design_scmh": 47127.8675
+        "tube_flow_design_scmh": 47127.8675,
+        "shell_nozzle_id_mm": 97.076
     },
     {
         "job_id": "8521B",
@@ -2507,7 +2544,8 @@
         "excess_surf_clean_pct": 70.3371,
         "tube_press_out_design_barg": 69.8872,
         "shell_press_out_design_barg": 4.87874,
-        "tube_flow_design_scmh": 62785.8947
+        "tube_flow_design_scmh": 62785.8947,
+        "shell_nozzle_id_mm": 146.2033
     },
     {
         "job_id": "8523",
@@ -2573,7 +2611,8 @@
         "excess_surf_clean_pct": 43.8032,
         "tube_press_out_design_barg": 32.7803,
         "shell_press_out_design_barg": 3.873505,
-        "tube_flow_design_scmh": 34999.5881
+        "tube_flow_design_scmh": 34999.5881,
+        "shell_nozzle_id_mm": 42.7737
     },
     {
         "job_id": "8526",
@@ -2639,7 +2678,8 @@
         "excess_surf_clean_pct": 57.894,
         "tube_press_out_design_barg": 85.9563,
         "shell_press_out_design_barg": 3.912159,
-        "tube_flow_design_scmh": 45000.0
+        "tube_flow_design_scmh": 45000.0,
+        "shell_nozzle_id_mm": 97.0796
     },
     {
         "job_id": "8530",
@@ -2705,7 +2745,8 @@
         "excess_surf_clean_pct": 59.2456,
         "tube_press_out_design_barg": 85.9106,
         "shell_press_out_design_barg": 3.895904,
-        "tube_flow_design_scmh": 56429.3256
+        "tube_flow_design_scmh": 56429.3256,
+        "shell_nozzle_id_mm": 146.2088
     },
     {
         "job_id": "8530B",
@@ -2771,7 +2812,8 @@
         "excess_surf_clean_pct": 52.776,
         "tube_press_out_design_barg": 85.9295,
         "shell_press_out_design_barg": 3.919682,
-        "tube_flow_design_scmh": 56429.3256
+        "tube_flow_design_scmh": 56429.3256,
+        "shell_nozzle_id_mm": 146.2088
     },
     {
         "job_id": "8537",
@@ -2837,7 +2879,8 @@
         "excess_surf_clean_pct": 110.0974,
         "tube_press_out_design_barg": 63.8651,
         "shell_press_out_design_barg": 5.29384,
-        "tube_flow_design_scmh": 254949.3177
+        "tube_flow_design_scmh": 254949.3177,
+        "shell_nozzle_id_mm": 130.8826
     },
     {
         "job_id": "8545",
@@ -2903,6 +2946,7 @@
         "excess_surf_clean_pct": 25.2701,
         "tube_press_out_design_barg": 63.5603,
         "shell_press_out_design_barg": 3.989615,
-        "tube_flow_design_scmh": 5500.0011
+        "tube_flow_design_scmh": 5500.0011,
+        "shell_nozzle_id_mm": 42.8057
     }
 ]
