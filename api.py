@@ -14,7 +14,9 @@ POST /fluid_props       Single-point CoolProp lookup (mean_bacton_gas, glycol, e
 
 import os
 import pickle
+import sqlite3
 import warnings
+from datetime import datetime, timezone
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -164,6 +166,30 @@ def _build_feature_vector(data: dict) -> np.ndarray:
 # ── Flask app ──────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app)
+
+# ── Reading history database ───────────────────────────────────────────────────
+READINGS_DB = os.path.join(BASE_DIR, "readings.db")
+
+def _init_readings_db():
+    with sqlite3.connect(READINGS_DB) as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS readings (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp     TEXT NOT NULL,
+                job_id        TEXT NOT NULL,
+                shell_in      REAL, shell_out     REAL,
+                tube_in       REAL, tube_out      REAL,
+                shell_flow    REAL, tube_flow     REAL,
+                tube_pres_in  REAL, tube_pres_out REAL,
+                Q_kw          REAL, U_actual      REAL,
+                U_ratio       REAL, duty_loss_pct REAL,
+                health_class  TEXT,
+                shell_dp      REAL, tube_dp       REAL,
+                noz_rhov2     REAL
+            )
+        """)
+
+_init_readings_db()
 
 
 @app.route("/health", methods=["GET"])
@@ -1037,6 +1063,73 @@ def fluid_props():
         return jsonify({"error": str(e)}), 422
 
     return jsonify(result)
+
+
+# ── Reading history endpoints ──────────────────────────────────────────────────
+
+@app.route("/save_reading", methods=["POST"])
+def save_reading():
+    """
+    POST /save_reading
+    Store one analysis result row in readings.db.
+
+    Required: job_id
+    Optional: timestamp (ISO-8601); all numeric fields from the dashboard.
+    """
+    if not request.is_json:
+        return jsonify({"error": "Content-Type must be application/json"}), 415
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object"}), 400
+
+    job_id = str(data.get("job_id", "")).strip()
+    if not job_id:
+        return jsonify({"error": "job_id is required"}), 422
+
+    ts = data.get("timestamp") or datetime.now(timezone.utc).isoformat()
+
+    with sqlite3.connect(READINGS_DB) as con:
+        con.execute(
+            """INSERT INTO readings (
+                   timestamp, job_id,
+                   shell_in, shell_out, tube_in, tube_out,
+                   shell_flow, tube_flow, tube_pres_in, tube_pres_out,
+                   Q_kw, U_actual, U_ratio, duty_loss_pct, health_class,
+                   shell_dp, tube_dp, noz_rhov2
+               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                ts, job_id,
+                data.get("shell_in"),      data.get("shell_out"),
+                data.get("tube_in"),       data.get("tube_out"),
+                data.get("shell_flow"),    data.get("tube_flow"),
+                data.get("tube_pres_in"),  data.get("tube_pres_out"),
+                data.get("Q_kw"),          data.get("U_actual"),
+                data.get("U_ratio"),       data.get("duty_loss_pct"),
+                data.get("health_class"),
+                data.get("shell_dp"),      data.get("tube_dp"),
+                data.get("noz_rhov2"),
+            ),
+        )
+
+    return jsonify({"saved": True, "timestamp": ts, "job_id": job_id})
+
+
+@app.route("/history/<job_id>", methods=["GET"])
+def get_history(job_id):
+    """
+    GET /history/<job_id>
+    Return the last 100 saved readings for that job, oldest first.
+    """
+    with sqlite3.connect(READINGS_DB) as con:
+        con.row_factory = sqlite3.Row
+        rows = con.execute(
+            """SELECT * FROM (
+                   SELECT * FROM readings WHERE job_id = ?
+                   ORDER BY id DESC LIMIT 100
+               ) ORDER BY id ASC""",
+            (job_id,),
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

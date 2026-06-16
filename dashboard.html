@@ -258,6 +258,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
     <div class="step-info" id="step-info">&nbsp;</div>
     <button class="btn" id="run-btn" onclick="runAnalysis()">&#9654;  Run Analysis</button>
     <div class="err" id="err-box"></div>
+    <div id="save-status" style="height:13px;font-family:var(--mono);font-size:9px;color:var(--green);margin-top:3px;text-align:right;letter-spacing:.5px"></div>
   </div>
 
   <!-- ── MIDDLE: Health Score ──────────────────────────────────────────────── -->
@@ -573,14 +574,14 @@ function initChart(){
   chart = new Chart(document.getElementById('tc'),{
     type:'line',
     data:{
-      labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+      labels:[],
       datasets:[
-        {label:'U ratio',data:[1.00,0.98,0.96,0.94,0.92,0.90,0.87,0.85],
+        {label:'U ratio',data:[],
          borderColor:'#00c8ff',backgroundColor:'rgba(0,200,255,0.05)',
-         borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#00c8ff',fill:true,tension:0.4},
-        {label:'Warn',data:Array(8).fill(0.85),borderColor:'#ffb800',
+         borderWidth:1.5,pointRadius:3,pointBackgroundColor:[],pointStyle:[],fill:true,tension:0.2},
+        {label:'Warn',data:[],borderColor:'#ffb800',
          borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false},
-        {label:'Crit',data:Array(8).fill(0.75),borderColor:'#ff3d3d',
+        {label:'Crit',data:[],borderColor:'#ff3d3d',
          borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false}
       ]
     },
@@ -588,8 +589,8 @@ function initChart(){
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false}},
       scales:{
-        x:{ticks:{color:'#8ab4d4',font:{size:9,family:'Share Tech Mono'}},grid:{color:'#1e2d42'}},
-        y:{min:0.55,max:1.05,
+        x:{ticks:{color:'#8ab4d4',font:{size:9,family:'Share Tech Mono'},maxRotation:45,maxTicksLimit:8},grid:{color:'#1e2d42'}},
+        y:{min:0.5,max:1.1,
            ticks:{color:'#8ab4d4',font:{size:9,family:'Share Tech Mono'},callback:v=>v.toFixed(2)},
            grid:{color:'#1e2d42'}}
       }
@@ -998,6 +999,20 @@ async function runAnalysis(){
     });
     displayDiagnostic({shell_dev, tube_dev, duty_loss_pct, U_ratio:urF, dp_ratio_SS:rSSF, dp_ratio_TS:rTSF});
 
+    // Save this reading and refresh trend chart (non-blocking — failures are silent)
+    saveAndRefreshHistory({
+      job_id:        currentJob ? currentJob.job_id : gDBStr('db_job'),
+      shell_in:      shellInA,      shell_out:     shellOutA,
+      tube_in:       tubeInA,       tube_out:      tubeOutA,
+      shell_flow:    shellFlowA,    tube_flow:     tubeFlowSCMH,
+      tube_pres_in:  tubePresInA,   tube_pres_out: tubePresOutA,
+      Q_kw:          Q_kW,          U_actual:      U_actual,
+      U_ratio:       U_ratio,       duty_loss_pct: duty_loss_pct,
+      health_class:  finalClass,
+      shell_dp:      dpSS,          tube_dp:       dpTS,
+      noz_rhov2:     nozRhoV2,
+    });
+
     setTimeout(()=>setStep(' '), 1800);
 
   }catch(e){
@@ -1090,8 +1105,10 @@ function displayTEMA(tv, nozRv2, tubeRv2, rSS, rTS, dpSS, ur, fi, cls){
 
   if(chart){
     const d=chart.data.datasets[0].data, l=chart.data.labels;
-    d.push(parseFloat(ur.toFixed(3))); l.push('Now');
-    if(d.length>10){d.shift();l.shift();}
+    const pbc=chart.data.datasets[0].pointBackgroundColor;
+    const ps=chart.data.datasets[0].pointStyle;
+    d.push(parseFloat(ur.toFixed(3))); l.push('Now'); pbc.push(c); ps.push('circle');
+    if(d.length>10){d.shift();l.shift();pbc.shift();ps.shift();}
     chart.data.datasets[1].data=Array(l.length).fill(0.85);
     chart.data.datasets[2].data=Array(l.length).fill(0.75);
     chart.data.datasets[0].borderColor=c;
@@ -1206,6 +1223,46 @@ function displayDiagnostic({shell_dev, tube_dev, duty_loss_pct, U_ratio, dp_rati
   } else {
     content.innerHTML = msgs.map(m=>`<div class="diag-msg ${m.cls}">${m.text}</div>`).join('');
   }
+}
+
+// ── Reading history + trend chart ─────────────────────────────────────────────
+async function saveAndRefreshHistory(payload){
+  try{
+    await fetch(API+'/save_reading',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload),
+      signal:AbortSignal.timeout(5000)
+    });
+    const el=document.getElementById('save-status');
+    if(el){el.textContent='✓ Reading saved';setTimeout(()=>{el.textContent='';},3000);}
+    if(payload.job_id){
+      const r=await fetch(API+'/history/'+encodeURIComponent(payload.job_id),{signal:AbortSignal.timeout(5000)});
+      if(r.ok) updateTrendChart(await r.json());
+    }
+  }catch(e){console.warn('[HX] save/history failed:',e.message);}
+}
+
+function updateTrendChart(readings){
+  if(!chart||!readings.length) return;
+  const fmt=r=>{
+    const d=new Date(r.timestamp);
+    return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '
+          +d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  };
+  const labels =readings.map(fmt);
+  const uRatios=readings.map(r=>parseFloat((+r.U_ratio).toFixed(3)));
+  const colors =readings.map(r=>gCol(r.health_class));
+  const styles =readings.map((r,i)=>
+    i>0&&((+r.U_ratio)-(+readings[i-1].U_ratio))>=0.05?'star':'circle');
+  chart.data.labels=labels;
+  chart.data.datasets[0].data=uRatios;
+  chart.data.datasets[0].pointBackgroundColor=colors;
+  chart.data.datasets[0].pointStyle=styles;
+  chart.data.datasets[0].borderColor=colors[colors.length-1]||'#00c8ff';
+  chart.data.datasets[1].data=Array(labels.length).fill(0.85);
+  chart.data.datasets[2].data=Array(labels.length).fill(0.75);
+  chart.update();
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
