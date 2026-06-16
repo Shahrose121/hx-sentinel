@@ -6,6 +6,7 @@
 <title>HX Sentinel — Paul &amp; Loughran Ltd</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500&family=Barlow+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -65,6 +66,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
 .btn:hover{background:rgba(0,200,255,0.08)}
 .btn:active{transform:scale(.98)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-rpt{width:100%;margin-top:5px;background:transparent;border:1px solid #2a4060;color:#6a94b8;font-family:var(--disp);font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;padding:7px;cursor:pointer;transition:all .2s;border-radius:2px}
+.btn-rpt:hover:not(:disabled){background:rgba(0,200,255,0.06);border-color:var(--accent);color:var(--accent)}
+.btn-rpt:disabled{opacity:.3;cursor:not-allowed}
 .step-info{font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:5px;height:13px;letter-spacing:.5px}
 .err{background:rgba(255,61,61,0.08);border:1px solid var(--danger);color:var(--danger);font-family:var(--mono);font-size:10px;padding:8px 10px;border-radius:2px;margin-top:8px;display:none}
 
@@ -259,6 +263,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
     <button class="btn" id="run-btn" onclick="runAnalysis()">&#9654;  Run Analysis</button>
     <div class="err" id="err-box"></div>
     <div id="save-status" style="height:13px;font-family:var(--mono);font-size:9px;color:var(--green);margin-top:3px;text-align:right;letter-spacing:.5px"></div>
+    <button class="btn-rpt" id="report-btn" disabled onclick="generatePDF()">&#128196;  Generate Report</button>
   </div>
 
   <!-- ── MIDDLE: Health Score ──────────────────────────────────────────────── -->
@@ -415,6 +420,7 @@ const API = 'http://localhost:5000';
 let chart;
 let JOB_DB     = [];   // loaded from job_database.json
 let currentJob = null; // full record for selected job
+let lastReport = null; // populated after each successful Run Analysis — used by generatePDF()
 
 // ── Job database loader ───────────────────────────────────────────────────────
 async function fetchJobDB(){
@@ -999,6 +1005,30 @@ async function runAnalysis(){
     });
     displayDiagnostic({shell_dev, tube_dev, duty_loss_pct, U_ratio:urF, dp_ratio_SS:rSSF, dp_ratio_TS:rTSF});
 
+    // ── Capture report snapshot (used by generatePDF) ─────────────────────────
+    const _BAND = {healthy:[85,100],warning:[60,84],critical:[35,59],failed:[0,34]};
+    const [_lo,_hi] = _BAND[finalClass] || _BAND.healthy;
+    const _hsFrac   = Math.max(0, Math.min(1, urHealth));
+    lastReport = {
+      jobId:         gDBStr('db_job'),
+      healthClass:   finalClass,
+      healthScore:   Math.round(Math.max(_lo, Math.min(_hi, _lo+(_hi-_lo)*_hsFrac))),
+      areaRatio:     mlResult.area_ratio,
+      Q_kW, dutyDesign, duty_loss_pct,
+      U_actual, uServiceClean, U_ratio,
+      shellOutA, shellOutD, shell_dev,
+      tubeOutA,  tubeOutD,  tube_dev,
+      tubeVel,   nozRhoV2,
+      dpSS, dpTS, dp_ratio_SS: rSSF, dp_ratio_TS: rTSF,
+      recommendation: {
+        healthy:  'No action required — continue monitoring.',
+        warning:  'Monitor closely — schedule inspection within 30 days.',
+        critical: 'Schedule cleaning urgently — performance degraded.',
+        failed:   'IMMEDIATE ACTION — exchanger cannot meet design duty.',
+      }[finalClass] || 'Continue monitoring.',
+    };
+    document.getElementById('report-btn').disabled = false;
+
     // Save this reading and refresh trend chart (non-blocking — failures are silent)
     saveAndRefreshHistory({
       job_id:        currentJob ? currentJob.job_id : gDBStr('db_job'),
@@ -1263,6 +1293,157 @@ function updateTrendChart(readings){
   chart.data.datasets[1].data=Array(labels.length).fill(0.85);
   chart.data.datasets[2].data=Array(labels.length).fill(0.75);
   chart.update();
+}
+
+// ── PDF Report ────────────────────────────────────────────────────────────────
+function generatePDF(){
+  if(!lastReport){ alert('Run Analysis first to generate a report.'); return; }
+  if(!window.jspdf){ alert('jsPDF library not loaded — check internet connection.'); return; }
+
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4', orientation:'portrait'});
+
+  const W=210, H=297, ML=15, CW=180;
+  const r = lastReport;
+  const cls = r.healthClass;
+
+  // Palette
+  const navy   =[10, 25, 55];
+  const mblu   =[25, 80,140];
+  const lgray  =[195,205,215];
+  const dgray  =[90,100,115];
+  const nearbk =[25, 30, 35];
+  const SC ={healthy:[0,150,80], warning:[200,130,0], critical:[200,80,0], failed:[200,40,40]};
+  const SB ={healthy:[230,252,243], warning:[255,248,225], critical:[255,238,225], failed:[255,235,235]};
+  const sc=SC[cls]||SC.healthy, sbg=SB[cls]||SB.healthy;
+
+  let y=15;
+
+  // ── Header bar ──────────────────────────────────────────────────────────────
+  doc.setFillColor(...navy);
+  doc.rect(ML,y,CW,16,'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(0,200,255);
+  doc.text('HX SENTINEL', ML+4, y+7);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(160,200,230);
+  doc.text('Performance Report', ML+4, y+12.5);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(210,220,235);
+  doc.text('PAUL & LOUGHRAN LTD', ML+CW-4, y+7, {align:'right'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(150,175,205);
+  doc.text('Heat Exchanger Engineering', ML+CW-4, y+12.5, {align:'right'});
+  y+=19;
+
+  // ── Job info line ────────────────────────────────────────────────────────────
+  const now=new Date();
+  const dStr=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const tStr=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...dgray);
+  doc.text('Job: '+r.jobId, ML, y);
+  doc.text(dStr+'  '+tStr, ML+CW/2, y, {align:'center'});
+  doc.text('HX Sentinel v2.0', ML+CW, y, {align:'right'});
+  y+=4;
+  doc.setDrawColor(...lgray); doc.setLineWidth(0.25); doc.line(ML,y,ML+CW,y);
+  y+=7;
+
+  // ── Health verdict box ───────────────────────────────────────────────────────
+  doc.setFillColor(...sbg); doc.setDrawColor(...sc); doc.setLineWidth(0.6);
+  doc.roundedRect(ML,y,CW,22,2,2,'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(21); doc.setTextColor(...sc);
+  doc.text(cls.toUpperCase(), ML+CW/2, y+10, {align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...dgray);
+  doc.text(
+    'Health Score: '+r.healthScore+
+    '   |   Area Ratio: '+r.areaRatio.toFixed(3)+
+    '   |   U Ratio: '+r.U_ratio.toFixed(3),
+    ML+CW/2, y+17.5, {align:'center'}
+  );
+  y+=27;
+
+  // ── Table helpers ────────────────────────────────────────────────────────────
+  const C0=ML, C1=ML+72, C2=ML+122, C3=ML+162, RH=6.5;
+
+  function secHead(title){
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...mblu);
+    doc.text(title, ML, y); y+=3;
+    doc.setDrawColor(...mblu); doc.setLineWidth(0.3); doc.line(ML,y,ML+CW,y); y+=4;
+  }
+  function colHead(a,b,c,d){
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...dgray);
+    doc.text(a,C0,y); doc.text(b,C1,y); doc.text(c,C2,y); if(d) doc.text(d,C3,y);
+    y+=3.5; doc.setDrawColor(...lgray); doc.setLineWidth(0.2); doc.line(ML,y,ML+CW,y); y+=3.5;
+  }
+  function dataRow(lbl, val, ref, note, shade){
+    if(shade){doc.setFillColor(245,247,250); doc.rect(ML,y-4.5,CW,RH,'F');}
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...nearbk);
+    doc.text(lbl,C0,y);
+    doc.setFont('helvetica','bold'); doc.text(val,C1,y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...dgray);
+    doc.text(ref,C2,y); if(note) doc.text(note,C3,y); y+=RH;
+  }
+  function temaRow(lbl, val, lim, pass, shade){
+    if(shade){doc.setFillColor(245,247,250); doc.rect(ML,y-4.5,CW,RH,'F');}
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...nearbk);
+    doc.text(lbl,C0,y);
+    doc.setFont('helvetica','bold'); doc.text(val,C1,y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...dgray); doc.text(lim,C2,y);
+    doc.setFillColor(...(pass?[0,145,70]:[195,35,35]));
+    doc.roundedRect(C3,y-3.8,18,4.8,1,1,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(255,255,255);
+    doc.text(pass?'PASS':'FAIL', C3+9, y-0.4, {align:'center'}); y+=RH;
+  }
+
+  // ── Key Performance Results ──────────────────────────────────────────────────
+  secHead('KEY PERFORMANCE RESULTS');
+  colHead('Parameter','Actual','Design / Reference','Notes');
+  const sdv=(r.shell_dev>=0?'+':'')+r.shell_dev.toFixed(1);
+  const tdv=(r.tube_dev >=0?'+':'')+r.tube_dev.toFixed(1);
+  dataRow('Heat Duty',                   r.Q_kW.toFixed(3)+' kW',         r.dutyDesign.toFixed(1)+' kW (design)', '',              false);
+  dataRow('Duty Loss',                   r.duty_loss_pct.toFixed(1)+'%',   'warn >5%,  crit >20%',                '',              true);
+  dataRow('U Actual',                    r.U_actual.toFixed(1)+' W/m2K',   r.uServiceClean.toFixed(0)+' W/m2K (service clean)', '', false);
+  dataRow('U Ratio  (dirty / clean)',    r.U_ratio.toFixed(3),              'warn <0.85,  crit <0.72',             '',              true);
+  dataRow('Shell Outlet Temperature',    r.shellOutA.toFixed(1)+' degC',   r.shellOutD.toFixed(1)+' degC (design)', 'delta '+sdv+' degC', false);
+  dataRow('Tube Outlet Temperature',     r.tubeOutA.toFixed(1)+' degC',    r.tubeOutD.toFixed(1)+' degC (design)', 'delta '+tdv+' degC', true);
+  y+=3;
+
+  // ── TEMA Compliance ──────────────────────────────────────────────────────────
+  secHead('TEMA COMPLIANCE');
+  colHead('Check','Value','Limit','Status');
+  temaRow('Tube Velocity',         r.tubeVel.toFixed(2)+' m/s',          'max 40 m/s',  r.tubeVel<=40,       false);
+  temaRow('Shell Nozzle Rho.V2',   Math.round(r.nozRhoV2)+' kg/m.s2',   'max 2232',    r.nozRhoV2<=2232,    true);
+  temaRow('Shell dP Ratio',        (r.dp_ratio_SS*100).toFixed(1)+'%',   'max 100%',    r.dp_ratio_SS<=1.0,  false);
+  temaRow('Tube dP Ratio',         (r.dp_ratio_TS*100).toFixed(1)+'%',   'max 100%',    r.dp_ratio_TS<=1.0,  true);
+  y+=4;
+
+  // ── Trend chart ──────────────────────────────────────────────────────────────
+  if(chart && chart.data.labels.length>0){
+    secHead('U RATIO TREND');
+    doc.addImage(chart.toBase64Image('image/png',1.0),'PNG',ML,y,CW,42);
+    y+=46;
+  }
+
+  // ── Recommendation ───────────────────────────────────────────────────────────
+  y+=2;
+  doc.setFillColor(...sbg); doc.setDrawColor(...sc); doc.setLineWidth(0.5);
+  doc.roundedRect(ML,y,CW,13,2,2,'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...sc);
+  doc.text('RECOMMENDATION', ML+4, y+5);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...nearbk);
+  doc.text(r.recommendation, ML+4, y+10.5);
+  y+=17;
+
+  // ── Footer ───────────────────────────────────────────────────────────────────
+  const fy=H-14;
+  doc.setDrawColor(...lgray); doc.setLineWidth(0.25); doc.line(ML,fy,ML+CW,fy);
+  doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(...dgray);
+  doc.text(
+    'Calculated using REFPROP enthalpy method, validated to design data. For engineering use only.',
+    ML+CW/2, fy+4.5, {align:'center'}
+  );
+  doc.text(
+    'Paul & Loughran Ltd  |  HX Sentinel v2.0  |  4,300 AspenEDR cases  |  43 exchangers',
+    ML+CW/2, fy+9, {align:'center'}
+  );
+
+  doc.save('HX_Sentinel_Job'+r.jobId+'_'+now.toISOString().slice(0,10)+'.pdf');
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
