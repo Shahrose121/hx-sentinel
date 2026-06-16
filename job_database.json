@@ -1,4 +1,4 @@
-[
+﻿[
     {
         "job_id": "8257",
         "shell_in": 55.0,
@@ -1810,14 +1810,12 @@
     },
     {
         "job_id": "8471",
-        "data_quality": "bad_flow_source",
-        "data_quality_note": "EDR design flow input incorrect (~3580x too low). Needs EDR re-run before use.",
         "shell_in": 55.0,
         "shell_out_design": 35.0,
         "tube_in": 5.0,
         "tube_out_design": 19.098,
-        "shell_flow": 0.4544,
-        "tube_flow_kgh": 0.9509,
+        "shell_flow": 1635.6845,
+        "tube_flow_kgh": 3423.3858,
         "duty_design": 32.1639,
         "u_clean": 500.8528,
         "area": 2.77053,
@@ -1850,8 +1848,8 @@
         "cal_factor": 1,
         "notes": "",
         "u_service_clean": 352.9376,
-        "shell_flow_design_kgh": 0.4544,
-        "tube_flow_design_kgh": 0.9509,
+        "shell_flow_design_kgh": 1635.6845,
+        "tube_flow_design_kgh": 3423.3858,
         "shell_in_design": 55.0,
         "tube_in_design": 5.0,
         "shell_press_design_barg": 4.0,
@@ -1874,8 +1872,9 @@
         "excess_surf_clean_pct": 41.9097,
         "tube_press_out_design_barg": 35.9605,
         "shell_press_out_design_barg": 3.981049,
-        "tube_flow_design_scmh": 1.3055,
-        "shell_nozzle_id_mm": null
+        "tube_flow_design_scmh": 4699.9997,
+        "shell_nozzle_id_mm": null,
+        "flow_unit_to_kgh": 3600
     },
     {
         "job_id": "8474",

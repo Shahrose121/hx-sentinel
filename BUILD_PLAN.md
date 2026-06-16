@@ -14,8 +14,11 @@ Keep a stable demo-safe commit always.
 ---
 
 ## NEXT WEEK — FIX & VERIFY
-☐ Fix 8471 — re-run EDR, correct design flow (~3405 kg/h),
-  re-extract (rebuild_jobdb.py), remove bad_flow flag [data only]
+☑ Fix 8471 — root cause: EDR stored flow in kg/s while all others use kg/h;
+  extraction read raw value without unit conversion → 0.9509 stored as "kg/h".
+  Fix: flow_unit_to_kgh=3600 added to DB entry; rebuild_jobdb.py updated to
+  apply per-job multiplier. EDR re-run (100/100 OK, U_clean=500.85 restored).
+  Flow now 3423.4 kg/h. Audit 220/220·44/44·8/8 · 0 hard failures. Flag removed.
 ☐ Clarify: does U_ratio use u_clean or u_service_clean?
   Does a clean new unit show sensible value?
 ☐ Decide tube RhoV²: keep info-only or remove (no TEMA limit;

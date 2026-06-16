@@ -8,7 +8,7 @@ LAYER 3 — Customer edge cases: 8/8 handled gracefully
 LAYER 4 — Invariance (limits ⇏ physics): 44/44 jobs invariant
 LAYER 5 — Monotonicity (single-variable): 44/44 jobs monotonic
 LAYER 6 — Duty independence: 44/44 jobs independent
-LAYER 7 — Cross-job: 40/44 HEALTHY at design · 44/44 non-HEALTHY when fouled
+LAYER 7 — Cross-job: 41/44 HEALTHY at design · 44/44 non-HEALTHY when fouled
 
 ----------------------------------------------------------------------
 SUMMARY
@@ -19,12 +19,11 @@ SUMMARY
   Layer 4 (invariance):         44/44 jobs — limits never change duty/U/U_ratio
   Layer 5 (monotonicity):       44/44 jobs single-variable monotonic
   Layer 6 (duty independence):  44/44 jobs — duty depends only on flow/T/P
-  Layer 7 (cross-job):          40/44 HEALTHY@design · 44/44 non-HEALTHY@fouled
+  Layer 7 (cross-job):          41/44 HEALTHY@design · 44/44 non-HEALTHY@fouled
 
-HARD FAILURES: 1   |   ADVISORIES: 4
+HARD FAILURES: 0   |   ADVISORIES: 4
 ----------------------------------------------------------------------
-HARD FAILURES (job + reason):
-  - L7 8471: design point = FAILED (not HEALTHY) — unexpected
+No hard failures. Targets met: L1 220/220 · L2 44/44 · L3 8/8.
 
 ADVISORIES — raw ML non-monotonicity (not a logic/physics bug; see diagnosis):
   - L1 8337: worse input improved health (failed->critical)

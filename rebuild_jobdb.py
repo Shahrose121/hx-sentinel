@@ -131,12 +131,19 @@ for job in db:
         print(f"  {jid:<10}  ERROR: {err}")
         continue
 
+    # Per-job unit multiplier for flow fields (default 1.0 = CSV already in kg/h).
+    # Set flow_unit_to_kgh=3600 in the DB entry when the EDR stores flow in kg/s.
+    flow_mult = float(job.get("flow_unit_to_kgh", 1.0))
+    FLOW_KEYS = {"shell_flow_design_kgh", "tube_flow_design_kgh"}
+
     # v2 schema
     for v2_key, csv_key, ndp in V2_FIELDS:
         val = fnum(row.get(csv_key))
         if val is None:
             # Don't clobber existing data with None — skip silently
             continue
+        if v2_key in FLOW_KEYS and flow_mult != 1.0:
+            val = val * flow_mult
         job[v2_key] = round(val, ndp) if ndp > 0 else int(round(val))
 
     # Tube outlet pressure derived from CSV inlet pressure and tube-side ΔP.
