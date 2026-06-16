@@ -1402,11 +1402,23 @@ function generatePDF(){
   const sdv=(r.shell_dev>=0?'+':'')+r.shell_dev.toFixed(1);
   const tdv=(r.tube_dev >=0?'+':'')+r.tube_dev.toFixed(1);
   dataRow('Heat Duty',  r.Q_kW.toFixed(3)+' kW',  r.dutyDesign.toFixed(1)+' kW (design)', '', false);
-  const dutyNeg = r.duty_loss_pct < 0;
-  dataRow('Duty Loss', r.duty_loss_pct.toFixed(1)+'%', 'warn >5%,  crit >20%', '', true, dutyNeg?[180,120,0]:null);
-  if(dutyNeg){
-    doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(180,120,0);
-    doc.text('* Calculated duty exceeds design — check pressure inputs', C1, y); y+=4;
+  // Duty loss colour/note: within ±5% is measurement tolerance (green).
+  // Negative beyond -5%: amber note; beyond -15%: red note.
+  // Positive beyond 20%: amber (notable fouling loss — dashboard already flags critical).
+  let _dlClr=null, _dlNote=null;
+  if(r.duty_loss_pct < -15){
+    _dlClr=[190,35,35];
+    _dlNote='* Duty significantly exceeds design — check pressure inputs';
+  } else if(r.duty_loss_pct < -5){
+    _dlClr=[180,120,0];
+    _dlNote='* Calculated duty exceeds design — check pressure inputs';
+  } else if(r.duty_loss_pct > 20){
+    _dlClr=[180,120,0];
+  }
+  dataRow('Duty Loss', r.duty_loss_pct.toFixed(1)+'%', 'warn >5%,  crit >20%', '', true, _dlClr);
+  if(_dlNote){
+    doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(...(_dlClr));
+    doc.text(_dlNote, C1, y); y+=4;
   }
   dataRow('U Actual',  r.U_actual.toFixed(1)+' W/m2K',  r.uServiceClean.toFixed(0)+' W/m2K (service clean)', '', false);
   const urCapped = r.U_ratio > 1.0;
