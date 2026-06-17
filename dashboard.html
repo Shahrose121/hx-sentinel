@@ -1027,7 +1027,11 @@ async function runAnalysis(){
         failed:   'IMMEDIATE ACTION — exchanger cannot meet design duty.',
       }[finalClass] || 'Continue monitoring.',
     };
-    document.getElementById('report-btn').disabled = false;
+    const _runTime = new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    lastReport.runTime = _runTime;
+    const _rBtn = document.getElementById('report-btn');
+    _rBtn.disabled = false;
+    _rBtn.innerHTML = '&#128196;&nbsp; Generate Report (last run: ' + _runTime + ')';
 
     // Save this reading and refresh trend chart (non-blocking — failures are silent)
     saveAndRefreshHistory({
