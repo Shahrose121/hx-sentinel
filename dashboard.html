@@ -954,16 +954,37 @@ async function runAnalysis(){
         finalClass = escalated;
     }
 
+    // ── Area-ratio floors — anchors the cleaning call to the fouling margin
+    // the design engineer actually built into the exchanger (designAr), not an
+    // ML guess. currentAr < designAr means the unit is still within its design
+    // fouling allowance — that alone never pulls health DOWN (floors only escalate,
+    // same convention as the ΔP / tube_dev floors above). currentAr > designAr means
+    // the allowance is used up; the further past it, the worse the floor.
+    if (currentAr > designAr * 1.30) {
+        if (finalClass !== 'failed') overrideReasons.push(`area ratio ${currentAr.toFixed(3)} > design ${designAr.toFixed(3)} × 1.30 → FAILED (far beyond design fouling limit)`);
+        finalClass = 'failed';
+    } else if (currentAr > designAr * 1.15) {
+        const escalated = worseOf(finalClass, 'critical');
+        if (escalated !== finalClass) overrideReasons.push(`area ratio ${currentAr.toFixed(3)} > design ${designAr.toFixed(3)} × 1.15 → ≥ CRITICAL (significantly beyond design fouling limit)`);
+        finalClass = escalated;
+    } else if (currentAr > designAr) {
+        const escalated = worseOf(finalClass, 'warning');
+        if (escalated !== finalClass) overrideReasons.push(`area ratio ${currentAr.toFixed(3)} > design ${designAr.toFixed(3)} → ≥ WARNING (fouling allowance exceeded)`);
+        finalClass = escalated;
+    }
+
     // ── PART 3 FIX A: physics-relax rule ──────────────────────────────────────
     // Physics is ground truth at the clean point. If duty, U and both ΔP ratios
     // all say clean, a harsh ML verdict (e.g. jobs 8337 / 8364-B reading
     // failed/critical at design) is overruled to HEALTHY. This is the ONLY rule
     // that relaxes — and only when every physical indicator is clearly clean.
-    if (duty_loss_pct < 5 && U_ratio >= 0.95 && dp_ratio_TS < 0.8 && dp_ratio_SS < 0.8) {
+    // Gated on currentAr <= designAr so an area-ratio floor above (fouling
+    // allowance exceeded) can never be relaxed back down — floors only escalate.
+    if (currentAr <= designAr && duty_loss_pct < 5 && U_ratio >= 0.95 && dp_ratio_TS < 0.8 && dp_ratio_SS < 0.8) {
         if (finalClass !== 'healthy')
             overrideReasons.push(`physics clean (duty loss ${duty_loss_pct.toFixed(1)}%, U ratio ${U_ratio.toFixed(2)}, ΔP < 80%) → HEALTHY`);
         finalClass = 'healthy';
-    } else if (duty_loss_pct < 5 && U_ratio >= 0.95 &&
+    } else if (currentAr <= designAr && duty_loss_pct < 5 && U_ratio >= 0.95 &&
                Math.max(dp_ratio_TS, dp_ratio_SS) >= 0.8 &&
                Math.max(dp_ratio_TS, dp_ratio_SS) <= 1.0) {
         // Thermally clean but ΔP genuinely near the allowable limit: a too-harsh
@@ -1004,6 +1025,13 @@ async function runAnalysis(){
     if (Q_kW > dutyDesign * 1.15) {
       urHealth = 1.0;
       dutyNote = (dutyNote ? dutyNote + ' · ' : '') + 'Calculated duty exceeds design — check pressures';
+    }
+    if (currentAr > designAr * 1.30) {
+      dutyNote = (dutyNote ? dutyNote + ' · ' : '') + 'Far beyond design fouling limit — immediate action required';
+    } else if (currentAr > designAr * 1.15) {
+      dutyNote = (dutyNote ? dutyNote + ' · ' : '') + 'Significantly beyond design fouling limit — clean urgently';
+    } else if (currentAr > designAr) {
+      dutyNote = (dutyNote ? dutyNote + ' · ' : '') + 'Fouling allowance exceeded — schedule cleaning';
     }
 
     displayHealth(mlResult, urHealth, rSSF, rTSF, dutyNote, designAr, currentAr);
