@@ -87,6 +87,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
 .flabel span:last-child{color:var(--text)}
 .btrack{height:4px;background:#060c14;border-radius:2px;overflow:hidden;border:1px solid var(--border)}
 .bfill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1),background .5s}
+.fp-row{width:100%;margin-top:14px}
+.fp-track{position:relative;height:8px;background:#060c14;border-radius:3px;border:1px solid var(--border);overflow:visible}
+.fp-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1),background .5s}
+.fp-limit-line{position:absolute;top:-3px;bottom:-3px;width:2px;background:#8ab4d4;left:76.9231%}
+.fp-limit-wrap{position:relative;height:11px;margin-top:2px}
+.fp-limit-label{position:absolute;left:76.9231%;transform:translateX(-50%);font-size:8px;color:var(--label);font-family:var(--mono);white-space:nowrap}
 .prob-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 .prob-label{font-size:9px;color:var(--label);font-family:var(--mono);width:52px;text-transform:uppercase}
 .prob-bar{flex:1;height:3px;background:#1e2d42;border-radius:2px;overflow:hidden}
@@ -307,6 +313,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--ui);min-height:100
         <div class="flabel"><span>U degradation</span><span id="udp">--%</span></div>
         <div class="btrack"><div id="udb" class="bfill" style="width:0%;background:#00ff9d"></div></div>
       </div>
+    </div>
+
+    <div class="fp-row">
+      <div class="flabel"><span id="fp-pct">Fouling Progress: -- of design allowance</span></div>
+      <div class="fp-track">
+        <div id="fp-fill" class="fp-fill" style="width:0%;background:#00ff9d"></div>
+        <div class="fp-limit-line"></div>
+      </div>
+      <div class="fp-limit-wrap"><span class="fp-limit-label">Design limit</span></div>
     </div>
   </div>
 
@@ -828,6 +843,11 @@ async function runAnalysis(){
     const designAr  = uClean / uServiceClean;
     const currentAr = U_actual > 0 ? uClean / U_actual : designAr;
 
+    // ── Fouling progress — where the exchanger sits between clean (AR=1.0)
+    // and its design fouling limit (AR=designAr), as a percentage. Display only;
+    // does not feed the health override logic above.
+    const foulingProgress = (designAr - 1) > 0 ? (currentAr - 1) / (designAr - 1) * 100 : 0;
+
     console.log('[HX] loaded design values:',
                 {dutyDesign, uClean, uServiceClean, area, fFactor});
     console.log('[HX] computed:',
@@ -1034,7 +1054,7 @@ async function runAnalysis(){
       dutyNote = (dutyNote ? dutyNote + ' · ' : '') + 'Fouling allowance exceeded — schedule cleaning';
     }
 
-    displayHealth(mlResult, urHealth, rSSF, rTSF, dutyNote, designAr, currentAr);
+    displayHealth(mlResult, urHealth, rSSF, rTSF, dutyNote, designAr, currentAr, foulingProgress);
     displayTEMA(tubeVel, nozRhoV2, rv2, rSSF, rTSF, dpSS, urF, fouling_index, mlResult.maintenance_class);
     displayThermal({
       Q_kW, U_actual, U_ratio, dutyDesign, duty_loss_pct,
@@ -1050,7 +1070,7 @@ async function runAnalysis(){
       jobId:         gDBStr('db_job'),
       healthClass:   finalClass,
       healthScore:   Math.round(Math.max(_lo, Math.min(_hi, _lo+(_hi-_lo)*_hsFrac))),
-      designAr,      currentAr,
+      designAr,      currentAr,      foulingProgress,
       Q_kW, dutyDesign, duty_loss_pct,
       U_actual, uServiceClean, U_ratio,
       shellOutA, shellOutD, shell_dev,
@@ -1100,7 +1120,7 @@ async function runAnalysis(){
 }
 
 // ── Display: Health panel ─────────────────────────────────────────────────────
-function displayHealth(ml, ur, rSS, rTS, dutyNote, designAr, currentAr){
+function displayHealth(ml, ur, rSS, rTS, dutyNote, designAr, currentAr, foulingProgress){
   const cls   = ml.maintenance_class;
   const probs = ml.maintenance_class_probabilities || {};
 
@@ -1156,6 +1176,13 @@ function displayHealth(ml, ur, rSS, rTS, dutyNote, designAr, currentAr){
   document.getElementById('udb').style.width=udpClamped+'%';
   document.getElementById('udb').style.background=udp>25?'#ff3d3d':udp>15?'#ffb800':'#00ff9d';
   document.getElementById('udp').textContent=udp.toFixed(1)+'%';
+
+  // Fouling progress — bar scaled 0-130%, coloured by zone, design-limit line at 100%.
+  const fpClamped = Math.max(0, Math.min(130, foulingProgress));
+  const fpColor = foulingProgress > 100 ? '#ff3d3d' : foulingProgress > 80 ? '#ffb800' : '#00ff9d';
+  document.getElementById('fp-fill').style.width = (fpClamped/130*100)+'%';
+  document.getElementById('fp-fill').style.background = fpColor;
+  document.getElementById('fp-pct').textContent = 'Fouling Progress: '+foulingProgress.toFixed(1)+'% of design allowance';
 }
 
 // ── Display: TEMA + Performance ───────────────────────────────────────────────
@@ -1390,7 +1417,7 @@ function generatePDF(){
 
   // ── Health verdict box ───────────────────────────────────────────────────────
   const arExceedsDesign = r.currentAr > r.designAr;
-  const boxH = arExceedsDesign ? 27 : 22;
+  const boxH = arExceedsDesign ? 32 : 27;
   doc.setFillColor(...sbg); doc.setDrawColor(...sc); doc.setLineWidth(0.6);
   doc.roundedRect(ML,y,CW,boxH,2,2,'FD');
   doc.setFont('helvetica','bold'); doc.setFontSize(21); doc.setTextColor(...sc);
@@ -1402,9 +1429,11 @@ function generatePDF(){
     '   |   U Ratio: '+Math.min(r.U_ratio,1.0).toFixed(3),
     ML+CW/2, y+17.5, {align:'center'}
   );
+  doc.setFontSize(7.5);
+  doc.text('Fouling Progress: '+r.foulingProgress.toFixed(1)+'% of design allowance', ML+CW/2, y+23.5, {align:'center'});
   if (arExceedsDesign) {
     doc.setFont('helvetica','italic'); doc.setFontSize(7); doc.setTextColor(180,120,0);
-    doc.text('Exceeding design fouling allowance', ML+CW/2, y+23.5, {align:'center'});
+    doc.text('Exceeding design fouling allowance', ML+CW/2, y+29, {align:'center'});
   }
   y += boxH + 5;
 
